@@ -9,6 +9,7 @@
 The command compiles the app and every test harness into the ignored `artifacts` directory, then runs them from an isolated test working directory.
 It deliberately switches the test console to BOM-free UTF-8 so the Collector integration test reproduces GitHub runner input behavior.
 The isolated state override also suppresses live startup NTP/Public-IP calls; this prevents shared-runner network variance and teardown races from contaminating UI cadence measurements.
+After all cadence resources are closed and results are flushed, that harness exits explicitly to avoid a legacy CLR/native Ping finalizer race observed only during Windows Server 2025 process teardown.
 
 ## Suites
 

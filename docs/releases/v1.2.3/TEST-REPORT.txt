@@ -44,6 +44,8 @@ Validated changes
   the intermittent access fault previously seen after cadence tests completed.
 - Startup NTP/Public-IP continuations stop touching controls during shutdown;
   deterministic test state disables those external calls during UI timing suites.
+- The cadence harness flushes its verified result and exits after owned-resource
+  cleanup, avoiding a Windows Server 2025 CLR/native Ping finalizer race.
 - Accelerated soak covers packet loss, route/DNS changes, TACACS rejection,
   VTY/session limits, terminal pressure, memory and UI responsiveness.
 

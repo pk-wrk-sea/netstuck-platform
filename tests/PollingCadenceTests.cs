@@ -44,7 +44,15 @@ static class PollingCadenceTests
         try { if (File.Exists(state)) File.Delete(state); } catch { }
         Environment.SetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH", null);
         Console.WriteLine("Failures: " + failures);
-        return failures == 0 ? 0 : 1;
+        int exitCode = failures == 0 ? 0 : 1;
+        Console.Out.Flush();
+        // Rapid System.Net.NetworkInformation.Ping teardown can fault inside
+        // the legacy CLR several seconds after every task and Form has closed
+        // on Windows Server 2025 runners. All owned resources are already
+        // cleaned above; exit explicitly so that native finalizer race cannot
+        // overwrite the completed suite's verified exit code.
+        Environment.Exit(exitCode);
+        return exitCode;
     }
 
     static int MeasurePing(MainForm form, int interval, int duration)
