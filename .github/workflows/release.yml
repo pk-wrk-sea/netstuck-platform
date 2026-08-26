@@ -66,8 +66,9 @@ jobs:
           $shaFile = "$zip.sha256.txt"
           $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
           [System.IO.File]::WriteAllText($shaFile, "$hash  $([System.IO.Path]::GetFileName($zip))`n", [System.Text.UTF8Encoding]::new($false))
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $releaseTags = @(gh release list --limit 100 --json tagName --jq '.[].tagName' --repo $env:GITHUB_REPOSITORY)
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list GitHub Releases.' }
+          if ($releaseTags -contains $tag) {
             gh release upload $tag $zip $shaFile --clobber --repo $env:GITHUB_REPOSITORY
           } else {
             gh release create $tag $zip $shaFile --verify-tag --title "NetStuck v$env:VERSION" --notes "Validated portable Windows release. Download the ZIP as one folder; SHA256 is attached separately and included inside the package." --repo $env:GITHUB_REPOSITORY

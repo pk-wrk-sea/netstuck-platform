@@ -40,6 +40,8 @@ Validated changes
   covered by end-to-end tests.
 - UTF-8 console regression coverage confirms Collector stdin is BOM-free while
   passwords remain absent from process arguments.
+- Shared grid resources remain valid through native control teardown, preventing
+  the intermittent access fault previously seen after cadence tests completed.
 - Accelerated soak covers packet loss, route/DNS changes, TACACS rejection,
   VTY/session limits, terminal pressure, memory and UI responsiveness.
 

@@ -1838,7 +1838,19 @@ namespace NetStuck
             if (collectorTerminalTimerV120 != null) { collectorTerminalTimerV120.Stop(); collectorTerminalTimerV120.Dispose(); }
             StopTraceLookupCacheV120();
             if (pingUiTimer != null) { pingUiTimer.Stop(); pingUiTimer.Dispose(); }
-            if (gridBoldFont != null) gridBoldFont.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            // DataGridView cell styles reference this shared font while native
+            // handles are being destroyed. Dispose it only after child controls
+            // have completed teardown to avoid an intermittent GDI access fault.
+            base.Dispose(disposing);
+            if (disposing && gridBoldFont != null)
+            {
+                gridBoldFont.Dispose();
+                gridBoldFont = null;
+            }
         }
 
         static WebClient NewWebClient()
