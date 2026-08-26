@@ -1,0 +1,41 @@
+# Build and test outputs
+artifacts/
+bin/
+obj/
+.vs/
+*.exe
+*.dll
+*.pdb
+*.tmp
+*.user
+*.suo
+
+# Local release staging
+/outputs/
+/work/
+/releases/
+*.zip
+*.sha256.txt
+
+# NetStuck runtime state and caches
+state.json
+profiles.json
+mac-vendors.json
+trace-lookups.json
+network-identity-v103.json
+feature-state-test.json
+fake-plink-*
+
+# Collector output can contain credentials, topology and device configuration
+NetStuck Configs/
+collector-output/
+captures/
+exports/
+NetStuck-Collector-Errors-*.csv
+
+# Editor and OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

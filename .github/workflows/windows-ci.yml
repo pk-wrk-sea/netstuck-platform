@@ -1,0 +1,29 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build and run regression suites
+        shell: powershell
+        run: .\scripts\Test-NetStuck.ps1 -SoakSeconds 10
+
+      - name: Upload validated executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetStuck-v1.2.3-ci
+          path: artifacts/build/NetStuck.exe
+          if-no-files-found: error

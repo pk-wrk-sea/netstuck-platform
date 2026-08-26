@@ -1,0 +1,61 @@
+NetStuck v.1.2.3 - Baseline Verification Report
+======================================
+
+Build target: Windows .NET Framework 4.x, AnyCPU, optimized WinExe
+Assembly/File version: 1.2.3.0
+Verification date: 2026-08-26
+
+Final result
+------------
+
+- Core tests: 16/16 passed
+- Feature, UI and integration tests: 91/91 passed
+- Performance tests: 10/10 passed
+- Fixed-cadence tests: 3/3 passed
+- Accelerated soak checks: 8/8 passed
+- Total automated checks: 128/128 passed
+- Build: passed with no compiler errors
+
+Validated changes
+-----------------
+
+- Traceroute inputs use adjacent deterministic grid columns and never overlap.
+- Protocol, Port and Packet Size share the lower input row, leaving no timing
+  input below the Protocol dropdown.
+- Traceroute actions use a dedicated row and do not intersect input fields.
+- Enabled and disabled Traceroute inputs retain the same white background.
+- The Traceroute split remains usable at the 1100-pixel minimum window width.
+- Collector error CSV contains only IP, Status, Protocol, Username and Detail,
+  and excludes completed rows and credentials.
+- Large SSH output above 2 MB streams to disk while the in-memory preview stays
+  below 550 KB and memory growth stays below 100 MB.
+- Collector terminal batches 1,000 messages into fewer than 40 UI flushes.
+- Traceroute fields have complete borders and equal Protocol/Port/Packet widths.
+- Traceroute stable cycles reduce TTL probes while retaining the destination.
+- Traceroute updates preserve vertical/horizontal scroll and current-cell state.
+- ISP and DNS cache data survives reload with timestamp/TTL metadata.
+- Log Sanitizer implementation and legacy state fields are absent from source.
+- DOMAIN\username, prompt-aware SSH, AUTH fallback and Telnet integration remain
+  covered by end-to-end tests.
+- Accelerated soak covers packet loss, route/DNS changes, TACACS rejection,
+  VTY/session limits, terminal pressure, memory and UI responsiveness.
+
+Measured performance
+--------------------
+
+- Warm UI startup: 833 ms
+- Live Ping /24: 254 rows and 2,417 probes
+- Worst Live Ping UI dispatch: 18 ms
+- Dual Traceroute worst UI dispatch: 30 ms
+- Working set: 78 MB
+- Double-buffered result grids: 11
+
+Polling cadence with Timeout = 1000 ms
+--------------------------------------
+
+- Live Ping: 10 samples at 250 ms versus 3 at 1000 ms
+- Traceroute: 12 samples at 250 ms versus 4 at 1000 ms
+
+The bundled OvernightSoakTests defaults to eight hours. The release smoke run
+used --seconds 10 after an earlier 20-second fault pass identified and corrected
+the VTY-limit classification pattern.

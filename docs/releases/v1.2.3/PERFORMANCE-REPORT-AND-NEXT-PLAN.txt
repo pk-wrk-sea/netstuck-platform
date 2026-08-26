@@ -1,0 +1,50 @@
+NetStuck v.1.2.3 - Performance Report and Next Plan
+===================================================
+
+Current assessment
+------------------
+
+The v.1.2.3 deterministic-grid patch retains the v.1.2.0 performance design.
+The 2026-08-26 repository-baseline package run opened the UI in 833 ms. A /24
+Live Ping session produced 2,417 probes with an 18 ms worst UI dispatch. Two
+Traceroute sessions updated concurrently with a 30 ms worst dispatch. Working
+set was 78 MB.
+
+Implemented in this release
+---------------------------
+
+- Traceroute uses ResetItem and row invalidation only for changed hops.
+- Collector terminal uses a 75 ms batched queue, with 256 messages/128 KiB per
+  drain and a 2,000,000-character visible history cap.
+- Large SSH/Telnet output streams into per-device temporary files. The prompt
+  parser retains a 512 KiB tail, and JSON is escaped from the captured file in
+  chunks instead of loading the complete config.
+- Adaptive TTL polling runs full discovery initially and every eight cycles,
+  probes the destination each stable cycle, rotates stable intermediate hops,
+  and forces three full cycles after route change.
+- ISP and DNS caches persist with TTL and are bounded to 1,000 entries each.
+- The default soak harness runs eight hours; the release used an accelerated
+  fault pass and validated packet loss, route/DNS changes, TACACS rejection,
+  VTY/session limits, terminal queue draining and bounded memory growth.
+
+Measured cadence with Timeout = 1000 ms
+---------------------------------------
+
+- Live Ping 250 ms: 10 completed probes
+- Live Ping 1000 ms: 3 completed probes
+- Traceroute 250 ms: 12 samples
+- Traceroute 1000 ms: 4 samples
+
+Recommended plan for a later version (not implemented)
+------------------------------------------------------
+
+1. Add CPU, handle, socket and UI-dispatch percentile telemetry to the soak
+   report instead of recording only worst dispatch and memory growth.
+2. Add a real lab route with controlled ECMP changes and DNS TTL rotation; the
+   current automated soak injects deterministic route/DNS changes.
+3. Add optional per-device collector progress and queue wait time for 32-device
+   jobs without increasing terminal redraw frequency.
+4. Add an atomic cache replace strategy with a backup file for recovery from an
+   unexpected power loss while saving trace-lookups.json.
+5. Benchmark 48/64-hop public routes to tune the adaptive rotation width and
+   full-discovery interval using real packet-loss distributions.

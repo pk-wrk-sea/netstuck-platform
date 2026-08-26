@@ -1,0 +1,5 @@
+interface:
+  display_name: "NetStuck Maintainer"
+  short_description: "Safely maintain and release the NetStuck Windows app"
+  brand_color: "#2563EB"
+  default_prompt: "Use $netstuck-maintainer to change NetStuck safely and validate a release."
