@@ -7,6 +7,7 @@
 ```
 
 The command compiles the app and every test harness into the ignored `artifacts` directory, then runs them from an isolated test working directory.
+It deliberately switches the test console to BOM-free UTF-8 so the Collector integration test reproduces GitHub runner input behavior.
 
 ## Suites
 

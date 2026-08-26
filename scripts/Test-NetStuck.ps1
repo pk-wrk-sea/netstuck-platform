@@ -11,6 +11,14 @@ $testRoot = Join-Path $repoRoot 'tests'
 $outputRoot = Join-Path $repoRoot 'artifacts\test'
 $compiler = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 
+# Exercise redirected process input under the UTF-8 console mode used by
+# Windows GitHub runners. This guards Collector passwords against code-page
+# dependent BOM/preamble regressions while keeping the test fully local.
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8NoBom
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
+
 if (-not (Test-Path -LiteralPath $compiler)) {
     throw "The .NET Framework compiler was not found: $compiler"
 }

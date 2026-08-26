@@ -36,7 +36,14 @@ static class FeatureTests
         using (var form = new MainForm())
         {
             Set(form, "statePath", state);
-            form.Width = 1460; form.Height = 900; form.Show(); Pump(700);
+            // Keep geometry assertions deterministic on headless CI runners.
+            // Production remains DPI-aware; this suite validates the declared
+            // 1460x900 and 1100x700 logical layouts independent of host DPI.
+            form.AutoScaleMode = AutoScaleMode.None;
+            form.StartPosition = FormStartPosition.Manual;
+            form.Location = Point.Empty;
+            form.Width = 1460; form.Height = 900; form.Show();
+            form.Width = 1460; form.Height = 900; Pump(700);
             startupWatch.Stop();
             var controls = Flat(form).ToList();
             Check("UI first display stays responsive", startupWatch.ElapsedMilliseconds < 3000);
@@ -464,10 +471,16 @@ static class FeatureTests
     static bool AdjacentWithoutOverlap(Control[] fields)
     {
         if (fields == null || fields.Length < 2 || fields.Any(field => field == null)) return false;
+        float dpi = 96f;
+        try { using (Graphics graphics = fields[0].CreateGraphics()) dpi = graphics.DpiX; } catch { }
+        int maximumGap = Math.Max(12, (int)Math.Ceiling(12f * dpi / 96f));
+        Rectangle previous = ScreenBounds(fields[0]);
         for (int i = 1; i < fields.Length; i++)
         {
-            if (fields[i - 1].Right > fields[i].Left) return false;
-            if (fields[i].Left - fields[i - 1].Right > 12) return false;
+            Rectangle current = ScreenBounds(fields[i]);
+            if (previous.Right > current.Left) return false;
+            if (current.Left - previous.Right > maximumGap) return false;
+            previous = current;
         }
         return true;
     }

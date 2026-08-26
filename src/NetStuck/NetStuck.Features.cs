@@ -196,6 +196,9 @@ namespace NetStuck
         readonly SemaphoreSlim changed = new SemaphoreSlim(0, Int32.MaxValue);
         readonly Task stdoutPump;
         readonly Task stderrPump;
+        readonly Stream inputPipe;
+        static readonly Encoding InputPipeEncoding = new UTF8Encoding(false);
+        static readonly object InputPipeCreationSync = new object();
         bool disposed;
 
         public CollectorInteractiveProcess(string executable, string arguments, string captureFile)
@@ -211,7 +214,39 @@ namespace NetStuck
                 StandardOutputEncoding = Encoding.UTF8
             };
             process = new Process { StartInfo = info };
-            if (!process.Start()) throw new InvalidOperationException("Could not start the SSH client.");
+            // .NET Framework has no ProcessStartInfo.StandardInputEncoding and
+            // its default redirected writer can emit a UTF-8 BOM before the first
+            // password. Seed Console's cached input encoding without requiring a
+            // console handle, create the pipe, then restore it immediately.
+            lock (InputPipeCreationSync)
+            {
+                var cachedEncoding = typeof(Console).GetField("_inputEncoding",
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                object previousCachedEncoding = null;
+                Encoding previousInputEncoding = null;
+                bool usedPublicEncoding = false;
+                try
+                {
+                    if (cachedEncoding != null)
+                    {
+                        previousCachedEncoding = cachedEncoding.GetValue(null);
+                        cachedEncoding.SetValue(null, InputPipeEncoding);
+                    }
+                    else
+                    {
+                        previousInputEncoding = Console.InputEncoding;
+                        Console.InputEncoding = InputPipeEncoding;
+                        usedPublicEncoding = true;
+                    }
+                    if (!process.Start()) throw new InvalidOperationException("Could not start the SSH client.");
+                    inputPipe = process.StandardInput.BaseStream;
+                }
+                finally
+                {
+                    if (cachedEncoding != null) cachedEncoding.SetValue(null, previousCachedEncoding);
+                    else if (usedPublicEncoding) Console.InputEncoding = previousInputEncoding;
+                }
+            }
             stdoutPump = PumpAsync(process.StandardOutput);
             stderrPump = PumpAsync(process.StandardError);
         }
@@ -262,8 +297,9 @@ namespace NetStuck
         public void WriteLine(string value)
         {
             if (disposed || process.HasExited) throw new IOException("The SSH session closed before input could be sent.");
-            process.StandardInput.WriteLine(value ?? "");
-            process.StandardInput.Flush();
+            byte[] line = InputPipeEncoding.GetBytes((value ?? "") + "\r\n");
+            inputPipe.Write(line, 0, line.Length);
+            inputPipe.Flush();
         }
 
         public async Task WaitForChangeAsync(int timeoutMs, CancellationToken token)
@@ -293,7 +329,7 @@ namespace NetStuck
 
         public void CloseInput()
         {
-            try { process.StandardInput.Close(); } catch { }
+            try { inputPipe.Close(); } catch { }
         }
 
         public void Stop()
@@ -482,7 +518,7 @@ namespace NetStuck
             resultSplit.Panel1.Controls.Add(collectorGrid); resultSplit.Panel2.Controls.Add(collectorTerminal);
             resultCard.Controls.Add(resultSplit); resultCard.Controls.Add(SectionHeader("Collection review + terminal", "Double-click a completed row to open the captured file"));
             outer.Panel1.Controls.Add(left); outer.Panel2.Controls.Add(resultCard); page.Controls.Add(outer);
-            ConfigureSplit(page, outer, 530, 450, 620);
+            ConfigureSplit(page, outer, 530, 460, 620);
             ConfigureHorizontalSplit(resultCard, resultSplit, 300, 180, 170);
         }
 

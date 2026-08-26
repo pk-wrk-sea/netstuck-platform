@@ -1756,18 +1756,30 @@ namespace NetStuck
 
         void ConfigureSplit(TabPage page, SplitContainer split, int desired, int panel1Min, int panel2Min)
         {
-            bool configured = false;
+            bool fullyConfigured = false;
             LayoutEventHandler handler = null;
             handler = delegate
             {
                 int available = split.ClientSize.Width;
-                if (configured || available < panel1Min + panel2Min + split.SplitterWidth) return;
-                int distance = Math.Min(desired, available - panel2Min - split.SplitterWidth);
-                split.SplitterDistance = Math.Max(panel1Min, distance);
-                split.Panel1MinSize = panel1Min;
-                split.Panel2MinSize = panel2Min;
-                configured = true;
-                page.Layout -= handler;
+                if (fullyConfigured || available <= split.SplitterWidth) return;
+
+                int usable = available - split.SplitterWidth;
+                int effectiveLeftMin = Math.Min(panel1Min, usable);
+                int effectiveRightMin = Math.Min(panel2Min, Math.Max(0, usable - effectiveLeftMin));
+                int maximumDistance = Math.Max(0, usable - effectiveRightMin);
+                int distance = Math.Max(effectiveLeftMin, Math.Min(desired, maximumDistance));
+
+                // During startup a hidden tab or a constrained desktop can be
+                // narrower than both requested panes. Keep the input pane usable
+                // and retry on a later layout instead of leaving the default 25% split.
+                split.Panel1MinSize = 0;
+                split.Panel2MinSize = 0;
+                split.SplitterDistance = Math.Max(0, Math.Min(usable, distance));
+                split.Panel1MinSize = Math.Min(panel1Min, split.SplitterDistance);
+                split.Panel2MinSize = Math.Min(panel2Min, Math.Max(0, usable - split.SplitterDistance));
+
+                fullyConfigured = available >= panel1Min + panel2Min + split.SplitterWidth;
+                if (fullyConfigured) page.Layout -= handler;
             };
             page.Layout += handler;
         }

@@ -10,6 +10,8 @@ NetStuck v.1.2.3
 - จัดช่อง Traceroute เป็น Grid ที่มีคอลัมน์แน่นอน ช่อง Input จึงเรียงต่อกันและไม่ซ้อนกัน
 - แถวบนเป็น Target, Max Hops, Timeout และ Interval
 - แถวล่างเป็น Protocol, Port และ Packet Size ทำให้รายการ Protocol ไม่เปิดทับช่อง Timing
+- ปรับ Split pane ของ Traceroute และ Collector ให้ช่อง Input ไม่ยุบในเครื่องหรือ CI ที่มีพื้นที่หน้าจอจำกัด
+- Collector ส่ง Password และคำสั่งผ่าน redirected pipe แบบไม่มี BOM จึงไม่เกิดอักขระเกินหน้ารหัสผ่านเมื่อ Windows ใช้ UTF-8
 
 รายการเดิมจาก v.1.2.2
 ----------------------

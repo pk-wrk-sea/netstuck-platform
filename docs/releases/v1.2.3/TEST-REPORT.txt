@@ -25,6 +25,7 @@ Validated changes
 - Traceroute actions use a dedicated row and do not intersect input fields.
 - Enabled and disabled Traceroute inputs retain the same white background.
 - The Traceroute split remains usable at the 1100-pixel minimum window width.
+- Constrained-desktop startup preserves usable Traceroute and Collector input panes.
 - Collector error CSV contains only IP, Status, Protocol, Username and Detail,
   and excludes completed rows and credentials.
 - Large SSH output above 2 MB streams to disk while the in-memory preview stays
@@ -37,6 +38,8 @@ Validated changes
 - Log Sanitizer implementation and legacy state fields are absent from source.
 - DOMAIN\username, prompt-aware SSH, AUTH fallback and Telnet integration remain
   covered by end-to-end tests.
+- UTF-8 console regression coverage confirms Collector stdin is BOM-free while
+  passwords remain absent from process arguments.
 - Accelerated soak covers packet loss, route/DNS changes, TACACS rejection,
   VTY/session limits, terminal pressure, memory and UI responsiveness.
 

@@ -12,6 +12,10 @@ What changed in v.1.2.3
 - Target, Max Hops, Timeout and Interval now share the first aligned row.
 - Protocol, Port and Packet Size now share the second aligned row; opening the
   Protocol list can no longer cover a timing input.
+- Traceroute and Collector split panes now prioritize their input panels while
+  a constrained desktop is still laying out the window.
+- Collector writes passwords and commands to a BOM-free redirected pipe, so a
+  UTF-8 Windows console cannot prefix the first password with extra bytes.
 
 Changes retained from v.1.2.2
 -----------------------------
