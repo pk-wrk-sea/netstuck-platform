@@ -1414,6 +1414,7 @@ namespace NetStuck
 
         async Task RefreshNetworkIdentityAsync()
         {
+            if (appClosing || IsDisposed || Disposing) return;
             networkIdentityCachePathV103 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName, "network-identity-v103.json");
             string local = DetectPreferredLocalIp(); localIpStatus.Text = "My Local IP: " + (local.Length == 0 ? "Unavailable" : local);
             localIpStatus.ToolTipText = "Preferred local IPv4 address selected by Windows routing";
@@ -1430,12 +1431,14 @@ namespace NetStuck
                 string publicIp;
                 using (WebResponse response = await request.GetResponseAsync())
                 using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) publicIp = (await reader.ReadToEndAsync()).Trim();
+                if (appClosing || IsDisposed || Disposing) return;
                 IPAddress parsed; if (!IPAddress.TryParse(publicIp, out parsed)) throw new InvalidOperationException("Public IP service returned an invalid address.");
                 publicIpStatus.Text = "My Public IP: " + publicIp; publicIpStatus.ToolTipText = "Current egress public IP";
                 SaveNetworkIdentityCacheV103(new NetworkIdentityCacheV103 { PublicIp = publicIp, RetrievedUtc = DateTime.UtcNow });
             }
             catch (Exception ex)
             {
+                if (appClosing || IsDisposed || Disposing) return;
                 if (cached == null) publicIpStatus.Text = "My Public IP: Unavailable";
                 else publicIpStatus.ToolTipText = "Cached value - refresh failed";
                 Log("WARNING", "Network identity", "Public IP lookup unavailable: " + FriendlyError(ex));

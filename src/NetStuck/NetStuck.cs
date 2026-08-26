@@ -233,7 +233,13 @@ namespace NetStuck
             EnableCtrlWheelZoom(this);
             ResumeLayout(true);
             FormClosing += OnFormClosing;
-            Shown += async delegate { await Task.WhenAll(SynchronizeClockAsync(), RefreshNetworkIdentityAsync()); };
+            Shown += async delegate
+            {
+                // UI/performance suites use an isolated state override and must
+                // not leave real NTP/HTTP work running after their form closes.
+                if (!String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH"))) return;
+                await Task.WhenAll(SynchronizeClockAsync(), RefreshNetworkIdentityAsync());
+            };
             Log("INFO", "Application", "Application started — version " + AppVersion);
         }
 

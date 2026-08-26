@@ -11,6 +11,7 @@ All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git 
 - Made SplitContainer startup deterministic on constrained desktops so Traceroute and Collector inputs do not collapse into the default split.
 - Made Collector stdin BOM-free under UTF-8 Windows consoles while keeping passwords out of process arguments.
 - Deferred the shared result-grid font cleanup until after control teardown to prevent an intermittent Windows shutdown access fault.
+- Added close-state guards for startup NTP/Public-IP tasks and isolated those external calls from deterministic UI/performance tests.
 - Repository preparation: added reproducible build/test/package scripts, CI, maintenance documentation and an AI skill.
 - Repository hardening: removed an unused legacy SSH method that passed passwords through process arguments and replaced organization-specific assembly metadata. Active collector behavior and application version remain unchanged.
 

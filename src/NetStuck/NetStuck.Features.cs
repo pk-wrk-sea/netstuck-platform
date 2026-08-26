@@ -1545,18 +1545,22 @@ namespace NetStuck
 
         async Task SynchronizeClockAsync()
         {
+            if (appClosing || IsDisposed || Disposing) return;
             timeSourceStatus.Text = "Time: syncing NTP…";
             foreach (string server in new[] { "time.cloudflare.com", "pool.ntp.org", "time.google.com" })
             {
+                if (appClosing || IsDisposed || Disposing) return;
                 try
                 {
                     DateTime utc = await QueryNtpAsync(server, 2200);
+                    if (appClosing || IsDisposed || Disposing) return;
                     clockBaseUtc = utc; clockElapsed = Stopwatch.StartNew(); clockNtp = true;
                     timeSourceStatus.Text = "Time: NTP • " + server;
                     UpdateClockDisplay(); Log("INFO", "Clock", "Synchronized with " + server); return;
                 }
                 catch { }
             }
+            if (appClosing || IsDisposed || Disposing) return;
             clockBaseUtc = DateTime.UtcNow; clockElapsed = Stopwatch.StartNew(); clockNtp = false;
             timeSourceStatus.Text = "Time: Local fallback";
             UpdateClockDisplay(); Log("WARNING", "Clock", "Internet NTP unavailable; using Windows local clock");
