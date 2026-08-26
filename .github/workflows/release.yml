@@ -1,0 +1,84 @@
+name: Portable Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing NetStuck tag version without the leading v
+        required: true
+        default: '1.2.3'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[bootstrap-release]')
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Determine release version
+        shell: powershell
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            $version = $env:INPUT_VERSION
+          } elseif ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          } else {
+            $version = '1.2.3'
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid version: $version" }
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Download and verify PuTTY Plink 0.80 x64
+        shell: powershell
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'plink.exe'
+          Invoke-WebRequest -Uri 'https://the.earth.li/~sgtatham/putty/0.80/w64/plink.exe' -OutFile $target
+          $expected = '06861c22056919216f925892334ba29b4a2848a7a09c3611540b16e993fd6cc3'
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "Unexpected Plink SHA256: $actual" }
+          $signature = Get-AuthenticodeSignature -LiteralPath $target
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Simon Tatham') {
+            throw "Invalid Plink Authenticode signature: $($signature.Status)"
+          }
+          "PLINK_PATH=$target" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Test and package
+        shell: powershell
+        run: .\scripts\Package-NetStuck.ps1 -Version $env:VERSION -PlinkPath $env:PLINK_PATH
+
+      - name: Create or update GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v$env:VERSION"
+          $zip = Join-Path $PWD "artifacts\release\NetStuck-v.$env:VERSION.zip"
+          $shaFile = "$zip.sha256.txt"
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          [System.IO.File]::WriteAllText($shaFile, "$hash  $([System.IO.Path]::GetFileName($zip))`n", [System.Text.UTF8Encoding]::new($false))
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip $shaFile --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create $tag $zip $shaFile --verify-tag --title "NetStuck v$env:VERSION" --notes "Validated portable Windows release. Download the ZIP as one folder; SHA256 is attached separately and included inside the package." --repo $env:GITHUB_REPOSITORY
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetStuck-v${{ env.VERSION }}-portable
+          path: |
+            artifacts/release/NetStuck-v.${{ env.VERSION }}.zip
+            artifacts/release/NetStuck-v.${{ env.VERSION }}.zip.sha256.txt
+          if-no-files-found: error

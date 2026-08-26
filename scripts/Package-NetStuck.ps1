@@ -10,7 +10,7 @@ $artifactsRoot = Join-Path $repoRoot 'artifacts'
 $releaseRoot = Join-Path $artifactsRoot 'release'
 $stage = Join-Path $releaseRoot ("NetStuck-v.$Version")
 $zip = "$stage.zip"
-$expectedPlinkSha256 = 'e7d461204302d4ed4f47079a70070da9f6fe10b074c37cf8463f91f4709cdfb8'
+$expectedPlinkSha256 = '06861c22056919216f925892334ba29b4a2848a7a09c3611540b16e993fd6cc3'
 
 if (-not $PlinkPath) {
     $PlinkPath = Join-Path $repoRoot 'tools\plink.exe'
