@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using NetStuck;
@@ -51,9 +52,12 @@ static class PollingCadenceTests
         // on Windows Server 2025 runners. All owned resources are already
         // cleaned above; exit explicitly so that native finalizer race cannot
         // overwrite the completed suite's verified exit code.
-        Environment.Exit(exitCode);
+        TerminateProcess(Process.GetCurrentProcess().Handle, unchecked((uint)exitCode));
         return exitCode;
     }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool TerminateProcess(IntPtr processHandle, uint exitCode);
 
     static int MeasurePing(MainForm form, int interval, int duration)
     {
