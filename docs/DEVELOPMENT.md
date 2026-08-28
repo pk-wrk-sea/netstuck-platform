@@ -78,11 +78,11 @@ The capture host selects each target page before interaction, asserts the intend
 Packaged startup smoke must use an owned temporary state root and fail closed on process or cleanup residue:
 
 ```powershell
-.\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.1.2.3\NetStuck.exe
+.\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.1.3.0\NetStuck.exe
 ```
 
 Never place smoke `state.json` under `artifacts` or retain operator-profile-derived state. The canonical runner scans repository test-state files for operator-profile and credential content.
 
 The Phase A state presenter intentionally contains only states used by the shell, Calculators or Event Log. The unused determinate-progress contract found during Round 2 was deleted; progress remains deferred until an authorized production consumer exists.
 
-Packaging records source, toolchain, compiler invocation, explicit references, package inputs, decompressed content and ZIP container separately. `SHA256SUMS.txt` covers every intended pre-manifest package file; `NetStuck-v.1.2.3.provenance.json` is an external sidecar created only after package bytes are final, avoiding a self-referential package fingerprint. ZIP hash differences alone do not prove content differences; compare the decompressed content fingerprint and per-file raw hashes.
+Packaging records source, toolchain, compiler invocation, explicit references, package inputs, decompressed content and ZIP container separately. `SHA256SUMS.txt` covers every intended pre-manifest package file; `NetStuck-v.1.3.0.provenance.json` is an external sidecar created only after package bytes are final, avoiding a self-referential package fingerprint. ZIP hash differences alone do not prove content differences; compare the decompressed content fingerprint and per-file raw hashes.

@@ -1,6 +1,6 @@
 # NetStuck
 
-NetStuck is a portable Windows network diagnostics and configuration-collection application. The current baseline is **v1.2.3** and targets .NET Framework 4.x without requiring Python or the .NET SDK.
+NetStuck is a portable Windows network diagnostics and configuration-collection application. The current local candidate is **v1.3.0** and targets .NET Framework 4.x without requiring Python or the .NET SDK. The last published stable baseline remains **v1.2.3** until release acceptance is complete.
 
 ## Features
 
@@ -11,9 +11,9 @@ NetStuck is a portable Windows network diagnostics and configuration-collection 
 - Calculators: subnet/CIDR and network-unit conversions with quick references.
 - Config Collector: concurrent SSH/Telnet collection, AUTH1/AUTH2 fallback, streamed TXT/JSON output and error CSV export.
 
-## Repository baseline
+## Repository baseline and candidate
 
-The repository starts from the validated v1.2.3 source. Functional version upgrades should begin only after the baseline command passes:
+The v1.3.0 candidate is prepared from the validated v1.2.3 source. Validation starts with the canonical command:
 
 ```powershell
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10

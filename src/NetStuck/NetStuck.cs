@@ -23,8 +23,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("NetStuck")]
 [assembly: AssemblyDescription("Network reachability and diagnostics")]
 [assembly: AssemblyCompany("NetStuck Project")]
-[assembly: AssemblyVersion("1.2.3.0")]
-[assembly: AssemblyFileVersion("1.2.3.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
 
 namespace NetStuck
 {
@@ -80,7 +80,7 @@ namespace NetStuck
     public sealed partial class MainForm : Form
     {
         const string AppName = "NetStuck";
-        const string AppVersion = "v.1.2.3";
+        const string AppVersion = "v.1.3.0";
         const int MaxExpandedTargets = 1024;
 
         readonly Color Canvas = Color.FromArgb(245, 247, 250);
@@ -754,7 +754,12 @@ namespace NetStuck
                 Font = new Font("Segoe UI", 10),
                 BackColor = Surface,
                 Text =
-                    "NetStuck v.1.2.3 (Current)\r\n" +
+                    "NetStuck v.1.3.0 (Current)\r\n" +
+                    "UI foundations and Traceroute lifecycle reliability\r\n\r\n" +
+                    "- Added shared UI foundations for the shell, Calculators and Event Log pilots.\r\n" +
+                    "- Improved accessible control identity, interaction roles and deterministic capture evidence.\r\n" +
+                    "- Corrected Traceroute run ownership, stop/restart gating and stale completion handling.\r\n\r\n" +
+                    "NetStuck v.1.2.3\r\n" +
                     "Traceroute deterministic input alignment\r\n\r\n" +
                     "- Aligned Traceroute inputs in adjacent responsive grid columns.\r\n" +
                     "- Moved Protocol, Port and Packet size together so the protocol dropdown cannot cover timing inputs.\r\n" +

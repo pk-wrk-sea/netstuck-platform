@@ -2,6 +2,16 @@
 
 All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git tags and `v.MAJOR.MINOR.PATCH` in the legacy application UI.
 
+## v1.3.0 — Candidate (not released)
+
+- Added shared UI tokens, action roles, accessibility helpers and semantic state presentation for the application shell, Calculators and Event Log pilots.
+- Added persistent input labels and clearer accessible control identity without changing the established WinForms interaction model.
+- Added deterministic UI capture, privacy, rollback and build/package provenance verification infrastructure.
+- Corrected Traceroute lifecycle ownership, UI-thread dispatch, stop/restart gating and stale completion handling.
+- Preserved two independent Traceroute sessions, fixed polling cadence, Config Collector authentication order and credential-free process arguments/state/logs.
+- Recorded physical-pointer and native-dropdown merge acceptance; 125%, 150% and 200% DPI, High Contrast and screen-reader release gates remain open.
+- Prepared a local candidate only; no `v1.3.0` tag or GitHub Release exists yet.
+
 ## v1.2.3 — Baseline
 
 - Replaced fixed-width Traceroute flow rows with deterministic, adjacent grid columns.

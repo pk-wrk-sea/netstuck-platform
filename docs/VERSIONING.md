@@ -1,10 +1,12 @@
 # Versioning
 
-NetStuck uses semantic versions for repository tags and releases.
+NetStuck uses semantic versions for repository tags and releases. The current candidate target is:
 
-- Git tag/release: `v1.2.3`
-- Legacy UI display: `v.1.2.3`
-- Assembly/File version: `1.2.3.0`
+- Planned Git tag/release: `v1.3.0` (not created during candidate preparation)
+- Legacy UI display: `v.1.3.0`
+- Assembly/File version: `1.3.0.0`
+
+The last published stable baseline remains `v1.2.3` until release acceptance, tagging and publication are complete.
 
 When a version upgrade is explicitly requested, update all of these locations together:
 

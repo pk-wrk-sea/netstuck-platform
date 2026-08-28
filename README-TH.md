@@ -1,6 +1,6 @@
 # NetStuck
 
-NetStuck เป็นโปรแกรม Network diagnostics และ Config Collector แบบ Portable สำหรับ Windows โดย baseline ปัจจุบันคือ **v1.2.3** ใช้ .NET Framework 4.x และไม่ต้องติดตั้ง Python หรือ .NET SDK
+NetStuck เป็นโปรแกรม Network diagnostics และ Config Collector แบบ Portable สำหรับ Windows โดย candidate สำหรับใช้ในเครื่องปัจจุบันคือ **v1.3.0** ใช้ .NET Framework 4.x และไม่ต้องติดตั้ง Python หรือ .NET SDK ส่วน baseline ที่เผยแพร่แล้วล่าสุดยังคงเป็น **v1.2.3** จนกว่าจะผ่าน release acceptance
 
 ## ความสามารถหลัก
 
@@ -11,9 +11,9 @@ NetStuck เป็นโปรแกรม Network diagnostics และ Config 
 - Calculators: IP/CIDR และแปลงหน่วย Network
 - Config Collector: SSH/Telnet พร้อม AUTH1/AUTH2 fallback, เก็บ TXT/JSON แบบ streaming และ export error CSV
 
-## ก่อนเริ่มอัปเกรด
+## Baseline และ candidate
 
-ต้องให้ baseline test ผ่านก่อน:
+Candidate v1.3.0 จัดทำจาก source baseline v1.2.3 ที่ผ่านการตรวจสอบแล้ว โดยเริ่ม validation ด้วยคำสั่งมาตรฐาน:
 
 ```powershell
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10

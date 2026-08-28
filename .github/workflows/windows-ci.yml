@@ -24,6 +24,6 @@ jobs:
       - name: Upload validated executable
         uses: actions/upload-artifact@v4
         with:
-          name: NetStuck-v1.2.3-ci
+          name: NetStuck-v1.3.0-ci
           path: artifacts/build/NetStuck.exe
           if-no-files-found: error
