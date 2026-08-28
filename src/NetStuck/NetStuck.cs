@@ -174,16 +174,24 @@ namespace NetStuck
 
         TextBox subnetInput;
         TextBox subnetOutput;
+        Button subnetCalculateButton;
+        UiStatePresenter subnetStatePresenter;
         TextBox unitValue;
         ComboBox unitFrom;
         ComboBox unitTo;
         Label unitOutput;
+        Button unitConvertButton;
+        UiStatePresenter unitStatePresenter;
 
         DataGridView logGrid;
         DataTable logTable;
         BindingSource logSource;
         TextBox logSearch;
         ComboBox logLevel;
+        Button logExportButton;
+        Button logClearButton;
+        UiStatePresenter logStatePresenter;
+        UiSemanticState? logPresentationState;
 
         public MainForm()
         {
@@ -197,8 +205,8 @@ namespace NetStuck
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Canvas;
             ForeColor = TextMain;
-            Font = new Font("Segoe UI", 9.25f);
-            gridBoldFont = new Font("Segoe UI Semibold", 9.25f, FontStyle.Bold);
+            Font = new Font(UiTokens.FontFamily, UiTokens.BodyFontSize);
+            gridBoldFont = new Font("Segoe UI Semibold", UiTokens.BodyFontSize, FontStyle.Bold);
             // A 40 ms UI batch keeps high-volume /24 sessions smooth while probe
             // workers continue to run on their own monotonic schedule.
             pingUiTimer = new System.Windows.Forms.Timer { Interval = 40 };
@@ -209,12 +217,22 @@ namespace NetStuck
             };
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { Icon = SystemIcons.Error; }
             AutoScaleMode = AutoScaleMode.Dpi;
-            profilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName, "profiles.json");
+            string testRootOverride = Environment.GetEnvironmentVariable("NETSTUCK_TEST_ROOT");
             string stateOverride = Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH");
-            statePath = String.IsNullOrWhiteSpace(stateOverride)
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName, "state.json")
-                : stateOverride;
-            macCachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName, "mac-vendors.json");
+            if (!String.IsNullOrWhiteSpace(testRootOverride))
+            {
+                string testRoot = Path.GetFullPath(testRootOverride);
+                profilePath = Path.Combine(testRoot, "profiles.json");
+                statePath = Path.Combine(testRoot, "state.json");
+                macCachePath = Path.Combine(testRoot, "mac-vendors.json");
+            }
+            else
+            {
+                string localRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName);
+                profilePath = Path.Combine(localRoot, "profiles.json");
+                statePath = String.IsNullOrWhiteSpace(stateOverride) ? Path.Combine(localRoot, "state.json") : stateOverride;
+                macCachePath = Path.Combine(localRoot, "mac-vendors.json");
+            }
             LoadMacVendorCache();
             InitializeTraceLookupCacheV120();
 
@@ -237,7 +255,8 @@ namespace NetStuck
             {
                 // UI/performance suites use an isolated state override and must
                 // not leave real NTP/HTTP work running after their form closes.
-                if (!String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH"))) return;
+                if (!String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH"))
+                    || !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NETSTUCK_TEST_ROOT"))) return;
                 await Task.WhenAll(SynchronizeClockAsync(), RefreshNetworkIdentityAsync());
             };
             Log("INFO", "Application", "Application started — version " + AppVersion);
@@ -245,18 +264,58 @@ namespace NetStuck
 
         void BuildShell()
         {
-            var header = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = Surface, Padding = new Padding(20, 10, 20, 8) };
-            header.Paint += delegate(object sender, PaintEventArgs e) { using (var pen = new Pen(Border)) e.Graphics.DrawLine(pen, 0, header.Height - 1, header.Width, header.Height - 1); };
-            var logo = new PictureBox { Location = new Point(18, 13), Size = new Size(40, 40), SizeMode = PictureBoxSizeMode.Zoom, Image = Icon.ToBitmap() };
-            var title = new Label { Text = AppName, AutoSize = true, Font = new Font("Segoe UI Semibold", 17f), ForeColor = TextMain, Location = new Point(66, 9) };
-            var sub = new Label { Text = "Network reachability and diagnostics", AutoSize = true, ForeColor = TextMuted, Location = new Point(68, 42) };
-            var version = new Label { Text = AppVersion, AutoSize = true, BackColor = Color.FromArgb(239, 246, 255), ForeColor = Accent, Padding = new Padding(9, 4, 9, 4) };
-            version.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            header.Resize += delegate
+            var header = new Panel
             {
-                version.Location = new Point(header.Width - version.Width - 22, 22);
+                Name = "applicationHeader",
+                AccessibleName = "NetStuck application header",
+                AccessibleDescription = "Application identity and version.",
+                AccessibleRole = AccessibleRole.Grouping,
+                Dock = DockStyle.Top,
+                Height = UiTokens.AppHeaderHeight,
+                BackColor = UiTokens.Surface,
+                Padding = new Padding(UiTokens.SpaceLg, UiTokens.SpaceSm, UiTokens.SpaceLg, UiTokens.SpaceSm)
             };
-            header.Controls.AddRange(new Control[] { logo, title, sub, version });
+            header.Paint += delegate(object sender, PaintEventArgs e) { using (var pen = new Pen(UiTokens.Border)) e.Graphics.DrawLine(pen, 0, header.Height - 1, header.Width, header.Height - 1); };
+            var headerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = new Padding(0), Padding = new Padding(0), Tag = "UiFoundationShell" };
+            headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
+            headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var logo = new PictureBox
+            {
+                Name = "applicationLogo",
+                AccessibleName = "NetStuck logo",
+                AccessibleDescription = "NetStuck application icon.",
+                AccessibleRole = AccessibleRole.Graphic,
+                Anchor = AnchorStyles.Left,
+                Size = new Size(UiTokens.IconLarge, UiTokens.IconLarge),
+                Margin = new Padding(0),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Image = Icon.ToBitmap(),
+                TabStop = false
+            };
+            var identity = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(UiTokens.SpaceXs, 0, 0, 0), Padding = new Padding(0) };
+            identity.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+            identity.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            var title = new Label { Text = AppName, Dock = DockStyle.Fill, Font = new Font("Segoe UI Semibold", UiTokens.AppTitleFontSize), ForeColor = UiTokens.Text, TextAlign = ContentAlignment.BottomLeft, AutoEllipsis = true, TabStop = false };
+            var sub = new Label { Text = "Network reachability and diagnostics", Dock = DockStyle.Fill, ForeColor = UiTokens.MutedText, TextAlign = ContentAlignment.TopLeft, AutoEllipsis = true, TabStop = false };
+            identity.Controls.Add(title, 0, 0); identity.Controls.Add(sub, 0, 1);
+            var version = new Label
+            {
+                Name = "applicationVersion",
+                Text = AppVersion,
+                AccessibleName = "Application version " + AppVersion,
+                AccessibleDescription = "Current NetStuck version.",
+                AccessibleRole = AccessibleRole.StaticText,
+                AutoSize = true,
+                Anchor = AnchorStyles.Right,
+                BackColor = UiTokens.InfoSurface,
+                ForeColor = Accent,
+                Padding = new Padding(9, UiTokens.SpaceXs, 9, UiTokens.SpaceXs),
+                Margin = new Padding(UiTokens.SpaceMd, 0, 0, 0),
+                TabStop = false
+            };
+            headerLayout.Controls.Add(logo, 0, 0); headerLayout.Controls.Add(identity, 1, 0); headerLayout.Controls.Add(version, 2, 0);
+            header.Controls.Add(headerLayout);
 
             tabs.Dock = DockStyle.Fill;
             tabs.Font = new Font("Segoe UI Semibold", 9.5f);
@@ -265,13 +324,19 @@ namespace NetStuck
             tabs.ShowToolTips = true;
             tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabs.DrawItem += DrawMainTab;
+            UiAccessibility.Configure(tabs, "mainNavigationTabs", "Primary navigation", "Eight peer destinations. Use Ctrl+Tab and Ctrl+Shift+Tab to move between tabs.", 0);
 
-            var status = new StatusStrip { BackColor = Surface, ForeColor = TextMuted, SizingGrip = false };
-            var dot = new ToolStripStatusLabel("\u25CF") { ForeColor = Success };
+            var status = new StatusStrip { Name = "applicationStatusStrip", AccessibleName = "Application status", AccessibleDescription = "Global operation, time and network identity summary.", AccessibleRole = AccessibleRole.StatusBar, BackColor = UiTokens.Surface, ForeColor = UiTokens.MutedText, SizingGrip = false, TabStop = false };
+            var dot = new ToolStripStatusLabel("\u25CF") { ForeColor = UiTokens.Success, AccessibleName = "Ready status indicator", AccessibleDescription = "A text status follows this non-color indicator." };
             var spring = new ToolStripStatusLabel { Spring = true };
             timeSourceStatus = new ToolStripStatusLabel("Time: checking NTP…");
             var localDivider = new ToolStripSeparator { Margin = new Padding(8, 3, 8, 3) };
             var publicDivider = new ToolStripSeparator { Margin = new Padding(8, 3, 8, 3) };
+            UiAccessibility.Configure(appStatus, "Global operation status", "Summarizes current application activity.");
+            UiAccessibility.Configure(timeSourceStatus, "Time source status", "Shows whether the clock uses NTP or local fallback.");
+            UiAccessibility.Configure(clockStatus, "Application clock", "Current synchronized or local time.");
+            UiAccessibility.Configure(localIpStatus, "Local network identity", "Local IP summary; the value may be truncated visually but remains available to assistive technology.");
+            UiAccessibility.Configure(publicIpStatus, "Public network identity", "Public IP summary; the value may be truncated visually but remains available to assistive technology.");
             status.Items.AddRange(new ToolStripItem[] { dot, appStatus, spring, timeSourceStatus, clockStatus, localDivider, localIpStatus, publicDivider, publicIpStatus });
             clockTimer.Interval = 1000;
             clockTimer.Tick += delegate { UpdateClockDisplay(); };
@@ -573,37 +638,64 @@ namespace NetStuck
         void BuildCalculatorPage()
         {
             var page = NewPage("Calculators");
-            var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 680, SplitterWidth = 8, FixedPanel = FixedPanel.None, BackColor = Canvas };
-            split.Panel1.Padding = new Padding(0, 0, 4, 0); split.Panel2.Padding = new Padding(4, 0, 0, 0);
+            var split = new SplitContainer { Name = "calculatorSplit", AccessibleName = "Calculator tools", AccessibleDescription = "Resizable split between subnet and unit calculators.", Dock = DockStyle.Fill, SplitterDistance = 680, SplitterWidth = UiTokens.SplitterWidth, FixedPanel = FixedPanel.None, BackColor = Canvas };
+            split.Panel1.Padding = new Padding(0, 0, UiTokens.SpaceXs, 0); split.Panel2.Padding = new Padding(UiTokens.SpaceXs, 0, 0, 0);
             var subnetCard = Card();
-            var subnetBar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 50, ColumnCount = 2, Padding = new Padding(0, 7, 0, 7) };
+            subnetCard.Name = "subnetCalculatorSection";
+            subnetCard.AccessibleName = "IPv4 subnet calculator";
+            subnetCard.AccessibleDescription = "Calculates subnet details locally without network or file access.";
+            var subnetBar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 76, ColumnCount = 2, RowCount = 2, Padding = new Padding(0, UiTokens.SpaceSm, 0, UiTokens.SpaceSm), Margin = new Padding(0) };
             subnetBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); subnetBar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 155));
-            subnetInput = new TextBox { Dock = DockStyle.Fill, Text = "192.168.1.1/24", Font = new Font("Consolas", 10) };
-            var calculate = ActionButton("Calculate", true, 0); calculate.Dock = DockStyle.Fill; calculate.Click += CalculateSubnet;
-            subnetBar.Controls.Add(subnetInput, 0, 0); subnetBar.Controls.Add(calculate, 1, 0);
-            subnetOutput = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Font = new Font("Consolas", 10.5f), BorderStyle = BorderStyle.FixedSingle };
-            subnetCard.Controls.Add(subnetOutput); subnetCard.Controls.Add(subnetBar); subnetCard.Controls.Add(SectionHeader("IPv4 Subnet Calculator", "Accepts address/prefix, address /prefix, or address subnet-mask"));
+            subnetBar.RowStyles.Add(new RowStyle(SizeType.Absolute, 24)); subnetBar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            subnetInput = new TextBox { Dock = DockStyle.Fill, Text = "192.168.1.1/24", Font = new Font(UiTokens.MonospaceFontFamily, 10), MinimumSize = new Size(UiTokens.StandardFieldMinWidth, 0) };
+            Label subnetLabel = UiAccessibility.AssociateLabel("&Address / prefix", subnetInput, "subnetInput", "Subnet address or prefix", "Enter an IPv4 address with a prefix length or subnet mask.", 0);
+            subnetLabel.Dock = DockStyle.Fill; subnetLabel.TextAlign = ContentAlignment.BottomLeft;
+            subnetCalculateButton = ActionButton("Calculate", true, 0); subnetCalculateButton.Dock = DockStyle.Fill; subnetCalculateButton.Click += CalculateSubnet;
+            UiFoundation.ConfigureActionButton(subnetCalculateButton, UiActionRole.Primary);
+            UiAccessibility.Configure(subnetCalculateButton, "subnetCalculateButton", "Calculate subnet", "Primary action. Calculates subnet details from the entered address.", 1);
+            subnetBar.Controls.Add(subnetLabel, 0, 0);
+            subnetBar.Controls.Add(subnetInput, 0, 1); subnetBar.Controls.Add(subnetCalculateButton, 1, 1);
+            subnetStatePresenter = new UiStatePresenter("subnetStatePresenter", "Subnet calculator status");
+            subnetStatePresenter.SetState(UiSemanticState.Idle, "Ready to calculate", "Enter an address and prefix or subnet mask, then choose Calculate.", false);
+            subnetOutput = new TextBox { Name = "subnetOutput", AccessibleName = "Subnet calculation result", AccessibleDescription = "Read-only subnet details. The result is selectable and copyable.", AccessibleRole = AccessibleRole.Text, TabIndex = 2, Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Font = new Font(UiTokens.MonospaceFontFamily, 10.5f), BorderStyle = BorderStyle.FixedSingle };
+            subnetCard.Controls.Add(subnetOutput); subnetCard.Controls.Add(subnetStatePresenter); subnetCard.Controls.Add(subnetBar); subnetCard.Controls.Add(SectionHeader("IPv4 Subnet Calculator", "Accepts address/prefix, address /prefix, or address subnet-mask"));
             var converterCard = Card();
-            var converter = new TableLayoutPanel { Dock = DockStyle.Top, Height = 220, ColumnCount = 2, RowCount = 5, Padding = new Padding(0, 10, 0, 10) };
+            converterCard.Name = "unitConverterSection";
+            converterCard.AccessibleName = "Unit converter";
+            converterCard.AccessibleDescription = "Converts network rates and storage units locally.";
+            var converter = new TableLayoutPanel { Dock = DockStyle.Top, Height = 300, ColumnCount = 2, RowCount = 7, Padding = new Padding(0, UiTokens.SpaceSm, 0, UiTokens.SpaceSm), Margin = new Padding(0) };
             converter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); converter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
             converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
             converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
+            converter.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+            converter.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             unitValue = new TextBox { Dock = DockStyle.Fill, Text = "1000" };
             string[] units = { "bit", "Kbit", "Mbit", "Gbit", "Tbit", "Byte", "KB", "MB", "GB", "TB", "KiB", "MiB", "GiB" };
             unitFrom = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList }; unitFrom.Items.AddRange(units); unitFrom.SelectedItem = "Mbit";
             unitTo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList }; unitTo.Items.AddRange(units); unitTo.SelectedItem = "Gbit";
-            var convert = ActionButton("Convert", true, 135); convert.Dock = DockStyle.Right; convert.Click += ConvertUnits;
-            var convertAction = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 4, 0, 4) }; convertAction.Controls.Add(convert);
-            unitOutput = new Label { Text = "Result: —", Dock = DockStyle.Fill, Font = new Font("Segoe UI Semibold", 15), ForeColor = Accent, TextAlign = ContentAlignment.MiddleLeft };
-            converter.Controls.Add(FieldLabel("Value"), 0, 0); converter.SetColumnSpan(converter.GetControlFromPosition(0, 0), 2);
+            Label valueLabel = UiAccessibility.AssociateLabel("&Value", unitValue, "unitValue", "Value to convert", "Enter a finite numeric value.", 0);
+            Label fromLabel = UiAccessibility.AssociateLabel("&From", unitFrom, "unitFrom", "Source unit", "Choose the unit to convert from.", 1);
+            Label toLabel = UiAccessibility.AssociateLabel("&To", unitTo, "unitTo", "Destination unit", "Choose the unit to convert to.", 2);
+            valueLabel.Dock = fromLabel.Dock = toLabel.Dock = DockStyle.Fill;
+            valueLabel.TextAlign = fromLabel.TextAlign = toLabel.TextAlign = ContentAlignment.BottomLeft;
+            unitConvertButton = ActionButton("Convert", true, 135); unitConvertButton.Dock = DockStyle.Right; unitConvertButton.Click += ConvertUnits;
+            UiFoundation.ConfigureActionButton(unitConvertButton, UiActionRole.Primary);
+            UiAccessibility.Configure(unitConvertButton, "unitConvertButton", "Convert units", "Primary action. Converts the entered value between the selected units.", 3);
+            var convertAction = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, UiTokens.SpaceXs, 0, UiTokens.SpaceXs) }; convertAction.Controls.Add(unitConvertButton);
+            unitStatePresenter = new UiStatePresenter("unitStatePresenter", "Unit converter status");
+            unitStatePresenter.SetState(UiSemanticState.Idle, "Ready to convert", "Choose source and destination units, then choose Convert.", false);
+            unitOutput = new Label { Name = "unitOutput", AccessibleName = "Unit conversion result", AccessibleDescription = "The most recent conversion result.", AccessibleRole = AccessibleRole.StaticText, Text = "Result: —", Dock = DockStyle.Fill, Font = new Font("Segoe UI Semibold", UiTokens.ResultFontSize), ForeColor = Accent, TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true, TabStop = false };
+            converter.Controls.Add(valueLabel, 0, 0); converter.SetColumnSpan(valueLabel, 2);
             converter.Controls.Add(unitValue, 0, 1); converter.SetColumnSpan(unitValue, 2);
-            converter.Controls.Add(unitFrom, 0, 2); converter.Controls.Add(unitTo, 1, 2);
-            converter.Controls.Add(convertAction, 0, 3); converter.SetColumnSpan(convertAction, 2);
-            converter.Controls.Add(unitOutput, 0, 4); converter.SetColumnSpan(unitOutput, 2);
-            var reference = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, Font = new Font("Consolas", 9.5f), BorderStyle = BorderStyle.FixedSingle, Text =
+            converter.Controls.Add(fromLabel, 0, 2); converter.Controls.Add(toLabel, 1, 2);
+            converter.Controls.Add(unitFrom, 0, 3); converter.Controls.Add(unitTo, 1, 3);
+            converter.Controls.Add(convertAction, 0, 4); converter.SetColumnSpan(convertAction, 2);
+            converter.Controls.Add(unitStatePresenter, 0, 5); converter.SetColumnSpan(unitStatePresenter, 2);
+            converter.Controls.Add(unitOutput, 0, 6); converter.SetColumnSpan(unitOutput, 2);
+            var reference = new TextBox { Name = "calculatorQuickReference", AccessibleName = "Subnet quick reference", AccessibleDescription = "Read-only reference for common IPv4 prefixes and unit definitions.", AccessibleRole = AccessibleRole.Text, TabIndex = 4, Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, Font = new Font(UiTokens.MonospaceFontFamily, 9.5f), BorderStyle = BorderStyle.FixedSingle, Text =
                 "QUICK REFERENCE\r\n\r\n/16   255.255.0.0       65,534 usable\r\n/17   255.255.128.0     32,766 usable\r\n/18   255.255.192.0     16,382 usable\r\n/19   255.255.224.0      8,190 usable\r\n/20   255.255.240.0      4,094 usable\r\n/21   255.255.248.0      2,046 usable\r\n/22   255.255.252.0      1,022 usable\r\n/23   255.255.254.0        510 usable\r\n/24   255.255.255.0        254 usable\r\n/25   255.255.255.128      126 usable\r\n/26   255.255.255.192       62 usable\r\n/27   255.255.255.224       30 usable\r\n/28   255.255.255.240       14 usable\r\n/29   255.255.255.248        6 usable\r\n/30   255.255.255.252        2 usable\r\n/31   255.255.255.254        2 point-to-point\r\n/32   255.255.255.255        1 host\r\n\r\nDecimal SI: 1 Mbit = 1,000,000 bits\r\nBinary IEC: 1 MiB = 1,048,576 bytes" };
             converterCard.Controls.Add(reference); converterCard.Controls.Add(converter); converterCard.Controls.Add(SectionHeader("Unit Converter", "Network rate and storage units"));
             split.Panel1.Controls.Add(subnetCard); split.Panel2.Controls.Add(converterCard); page.Controls.Add(split);
@@ -614,19 +706,37 @@ namespace NetStuck
         {
             var page = NewPage("Event Log");
             var card = Card();
-            var toolbar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 55, ColumnCount = 4, Padding = new Padding(0, 8, 0, 8) };
+            card.Name = "eventLogSection";
+            card.AccessibleName = "Realtime event log";
+            card.AccessibleDescription = "Filterable, sortable and copyable operational events.";
+            var toolbar = new TableLayoutPanel { Name = "eventLogToolbar", AccessibleName = "Event log actions", AccessibleDescription = "Search, level filter, export and clear actions.", AccessibleRole = AccessibleRole.ToolBar, Dock = DockStyle.Top, Height = 72, ColumnCount = 4, RowCount = 2, Padding = new Padding(0, UiTokens.SpaceSm, 0, UiTokens.SpaceSm), Tag = "UiFoundationDataViewToolbar" };
             toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130)); toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115)); toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 22)); toolbar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             logSearch = new TextBox { Dock = DockStyle.Fill }; Cue(logSearch, "Filter source or message"); logSearch.TextChanged += delegate { ApplyLogFilter(); };
             logLevel = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList }; logLevel.Items.AddRange(new object[] { "All levels", "INFO", "ACTION", "WARNING", "ERROR" }); logLevel.SelectedIndex = 0; logLevel.SelectedIndexChanged += delegate { ApplyLogFilter(); };
-            var export = ActionButton("Export log", false, 0); export.Dock = DockStyle.Fill; export.Click += ExportLog;
-            var clear = ActionButton("Clear", false, 0); clear.Dock = DockStyle.Fill; clear.Click += delegate { logTable.Rows.Clear(); };
-            toolbar.Controls.Add(logSearch, 0, 0); toolbar.Controls.Add(logLevel, 1, 0); toolbar.Controls.Add(export, 2, 0); toolbar.Controls.Add(clear, 3, 0);
+            Label searchLabel = UiAccessibility.AssociateLabel("&Search", logSearch, "logSearch", "Event log search", "Filters event source or message. The cue is an example, not the permanent label.", 0);
+            Label levelLabel = UiAccessibility.AssociateLabel("&Level", logLevel, "logLevel", "Event severity filter", "Choose all levels or one event severity.", 1);
+            searchLabel.Dock = levelLabel.Dock = DockStyle.Fill;
+            searchLabel.TextAlign = levelLabel.TextAlign = ContentAlignment.BottomLeft;
+            logExportButton = ActionButton("Export log", false, 0); logExportButton.Dock = DockStyle.Fill; logExportButton.Click += ExportLog;
+            UiFoundation.ConfigureActionButton(logExportButton, UiActionRole.Secondary);
+            UiAccessibility.Configure(logExportButton, "logExportButton", "Export event log", "Secondary action. Exports the event log to CSV.", 2);
+            logClearButton = DestructiveButton("Clear", 0); logClearButton.Dock = DockStyle.Fill; logClearButton.Click += delegate { logTable.Rows.Clear(); UpdateLogStatePresenter(); };
+            UiAccessibility.Configure(logClearButton, "logClearButton", "Clear event log", "Destructive action. Clears displayed events from the current session.", 3);
+            toolbar.Controls.Add(searchLabel, 0, 0); toolbar.Controls.Add(levelLabel, 1, 0);
+            toolbar.Controls.Add(logSearch, 0, 1); toolbar.Controls.Add(logLevel, 1, 1); toolbar.Controls.Add(logExportButton, 2, 1); toolbar.Controls.Add(logClearButton, 3, 1);
             logTable = new DataTable(); logTable.Columns.Add("Time", typeof(DateTime)); logTable.Columns.Add("Level"); logTable.Columns.Add("Source"); logTable.Columns.Add("Message");
             logSource = new BindingSource { DataSource = logTable };
             logGrid = DataGrid(); logGrid.AutoGenerateColumns = false;
             AddGridColumn(logGrid, "Timestamp", "Time", 175); AddGridColumn(logGrid, "Level", "Level", 90); AddGridColumn(logGrid, "Source", "Source", 130); AddGridColumn(logGrid, "Message", "Message", 700);
             logGrid.DataSource = logSource; logGrid.CellFormatting += FormatLogCell; logGrid.KeyDown += GridCopyShortcut;
-            card.Controls.Add(logGrid); card.Controls.Add(toolbar); card.Controls.Add(SectionHeader("Realtime event log", "Operational events and state changes; routine successful pings are summarized in the Ping table"));
+            logGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            UiFoundation.ConfigureReadOnlyResultGrid(logGrid, "logGrid", "Event log results", "Read-only table. Sort columns, select rows and use Control+C to copy.", 4);
+            logStatePresenter = new UiStatePresenter("logStatePresenter", "Event log data state");
+            logStatePresenter.SetState(UiSemanticState.Empty, "No events yet", "Operational events appear here as the application runs.", false);
+            logPresentationState = UiSemanticState.Empty;
+            logSource.ListChanged += delegate { UpdateLogStatePresenter(); };
+            card.Controls.Add(logGrid); card.Controls.Add(logStatePresenter); card.Controls.Add(toolbar); card.Controls.Add(SectionHeader("Realtime event log", "Operational events and state changes; routine successful pings are summarized in the Ping table"));
             page.Controls.Add(card);
         }
 
@@ -1304,16 +1414,33 @@ namespace NetStuck
                     "Usable hosts     " + r.Usable.ToString("N0") + "\r\n" +
                     "Address class    " + r.AddressClass + "\r\n" +
                     "Private address  " + (r.IsPrivate ? "Yes" : "No");
+                subnetStatePresenter.SetState(UiSemanticState.Success, "Subnet calculated", "The read-only result below is ready to review or copy.", true);
+                subnetOutput.AccessibleDescription = "Read-only subnet details for " + r.Address + "/" + r.Prefix + ".";
             }
-            catch (Exception ex) { subnetOutput.Text = "Invalid input\r\n\r\n" + FriendlyError(ex) + "\r\n\r\nAccepted examples:\r\n192.168.1.1/24\r\n192.168.1.1 /24\r\n192.168.1.1 255.255.255.0"; }
+            catch (Exception ex)
+            {
+                string error = FriendlyError(ex);
+                subnetOutput.Text = "Invalid input\r\n\r\n" + error + "\r\n\r\nAccepted examples:\r\n192.168.1.1/24\r\n192.168.1.1 /24\r\n192.168.1.1 255.255.255.0";
+                subnetStatePresenter.SetState(UiSemanticState.ValidationFailure, "Check the subnet input", error + " Example: 192.0.2.10/24.", true);
+                subnetInput.Focus(); subnetInput.SelectAll();
+            }
         }
 
         void ConvertUnits(object sender, EventArgs e)
         {
             double value;
-            if (!Double.TryParse(unitValue.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !Double.TryParse(unitValue.Text, out value)) { unitOutput.Text = "Result: invalid number"; return; }
+            if ((!Double.TryParse(unitValue.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !Double.TryParse(unitValue.Text, out value))
+                || Double.IsNaN(value) || Double.IsInfinity(value))
+            {
+                unitOutput.Text = "Result: invalid number";
+                unitStatePresenter.SetState(UiSemanticState.ValidationFailure, "Check the value", "Enter a finite number, for example 1000 or 1.5.", true);
+                unitValue.Focus(); unitValue.SelectAll();
+                return;
+            }
             double result = NetOpsCore.ConvertUnit(value, unitFrom.Text, unitTo.Text);
             unitOutput.Text = "Result: " + result.ToString("0.########", CultureInfo.InvariantCulture) + " " + unitTo.Text;
+            unitOutput.AccessibleDescription = "Converted value: " + result.ToString("0.########", CultureInfo.InvariantCulture) + " " + unitTo.Text + ".";
+            unitStatePresenter.SetState(UiSemanticState.Success, "Conversion complete", unitFrom.Text + " converted to " + unitTo.Text + ".", true);
         }
 
         void ApplyPingFilter()
@@ -1338,6 +1465,41 @@ namespace NetStuck
             if (search.Length > 0) { search = EscapeFilter(search); filters.Add("(Source LIKE '%" + search + "%' OR Message LIKE '%" + search + "%')"); }
             if (logLevel.SelectedIndex > 0) filters.Add("Level = '" + logLevel.SelectedItem + "'");
             logSource.Filter = String.Join(" AND ", filters);
+            UpdateLogStatePresenter();
+        }
+
+        void UpdateLogStatePresenter()
+        {
+            if (logStatePresenter == null || logSource == null || logTable == null) return;
+            UiSemanticState nextState;
+            string title;
+            string detail;
+            if (logTable.Rows.Count == 0)
+            {
+                nextState = UiSemanticState.Empty;
+                title = "No events yet";
+                detail = "Operational events appear here as the application runs.";
+            }
+            else if (logSource.Count == 0)
+            {
+                nextState = UiSemanticState.FilteredEmpty;
+                title = "No matching events";
+                detail = "Change the search or severity filter to show the " + logTable.Rows.Count + " available event(s).";
+            }
+            else
+            {
+                nextState = UiSemanticState.Success;
+                title = "Events available";
+                detail = logSource.Count + " of " + logTable.Rows.Count + " event(s) are available in the read-only table.";
+            }
+
+            bool announce = logPresentationState.HasValue && logPresentationState.Value != nextState;
+            logStatePresenter.SetState(nextState, title, detail, announce);
+            logPresentationState = nextState;
+            if (nextState == UiSemanticState.Success)
+                logStatePresenter.Visible = false;
+            else
+                logStatePresenter.Visible = true;
         }
 
         void UpdatePingMetrics()
@@ -1663,7 +1825,15 @@ namespace NetStuck
 
         TabPage NewPage(string text)
         {
-            var page = new TabPage(text) { Name = "page-" + text.Replace(" ", "-").Replace("/", "-"), BackColor = Canvas, Padding = new Padding(12) };
+            var page = new TabPage(text)
+            {
+                Name = "page-" + text.Replace(" ", "-").Replace("/", "-"),
+                AccessibleName = text + " page",
+                AccessibleDescription = "NetStuck " + text + " workspace.",
+                AccessibleRole = AccessibleRole.PageTab,
+                BackColor = Canvas,
+                Padding = new Padding(UiTokens.PageMargin)
+            };
             pagesByName[text] = page;
             tabs.TabPages.Add(page);
             return page;
@@ -1671,22 +1841,22 @@ namespace NetStuck
 
         Panel Card()
         {
-            var panel = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Padding = new Padding(12) };
+            var panel = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Padding = new Padding(UiTokens.SpaceMd) };
             panel.Paint += delegate(object sender, PaintEventArgs e) { using (var pen = new Pen(Border)) e.Graphics.DrawRectangle(pen, 0, 0, panel.Width - 1, panel.Height - 1); };
             return panel;
         }
 
         Panel SectionHeader(string title, string subtitle)
         {
-            var panel = new Panel { Dock = DockStyle.Top, Height = 55, BackColor = Surface };
-            panel.Controls.Add(new Label { Text = title, Font = new Font("Segoe UI Semibold", 11.5f), ForeColor = TextMain, AutoSize = true, Location = new Point(0, 4) });
-            panel.Controls.Add(new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, Location = new Point(1, 29) });
+            var panel = new Panel { Dock = DockStyle.Top, Height = UiTokens.SectionHeaderHeight, BackColor = Surface, AccessibleName = title + " section", AccessibleDescription = subtitle, AccessibleRole = AccessibleRole.Grouping, TabStop = false };
+            panel.Controls.Add(new Label { Text = title, Font = new Font("Segoe UI Semibold", UiTokens.SectionTitleFontSize), ForeColor = TextMain, AutoSize = true, Location = new Point(0, UiTokens.SpaceXs), AccessibleName = title, AccessibleRole = AccessibleRole.StaticText, TabStop = false });
+            panel.Controls.Add(new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(900, 0), Location = new Point(1, 29), AccessibleName = title + " description", AccessibleDescription = subtitle, AccessibleRole = AccessibleRole.StaticText, TabStop = false });
             return panel;
         }
 
         Label MetricCard(TableLayoutPanel parent, int column, string caption, string value, Color valueColor)
         {
-            var card = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Margin = new Padding(column == 0 ? 0 : 5, 0, column == 4 ? 0 : 5, 0), Padding = new Padding(10, 3, 10, 3) };
+            var card = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Margin = new Padding(column == 0 ? 0 : 5, 0, column == 4 ? 0 : 5, 0), Padding = new Padding(10, 3, 10, 3), AccessibleName = caption + " metric", AccessibleDescription = caption + " current value.", AccessibleRole = AccessibleRole.Grouping, TabStop = false };
             card.Paint += delegate(object sender, PaintEventArgs e) { using (var pen = new Pen(Border)) e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1); };
             var cap = new Label { Text = caption, Dock = DockStyle.Top, Height = 17, ForeColor = TextMuted, Font = new Font("Segoe UI Semibold", 8f), TextAlign = ContentAlignment.MiddleCenter };
             var val = new Label { Text = value, Dock = DockStyle.Bottom, Height = 31, ForeColor = valueColor, Font = new Font("Segoe UI Semibold", 13f), TextAlign = ContentAlignment.MiddleCenter };
@@ -1708,7 +1878,7 @@ namespace NetStuck
 
         Panel CompactActionBar(Button action)
         {
-            var bar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Surface, Padding = new Padding(0, 7, 0, 7) };
+            var bar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Surface, Padding = new Padding(0, 7, 0, 7), AccessibleRole = AccessibleRole.ToolBar };
             action.Dock = DockStyle.Right;
             bar.Controls.Add(action);
             return bar;
@@ -1719,15 +1889,22 @@ namespace NetStuck
             var button = ActionButton(text, false, width); button.ForeColor = Danger; button.FlatAppearance.BorderColor = Color.FromArgb(252, 165, 165); return button;
         }
 
-        Label FieldLabel(string text) { return new Label { Text = text, AutoSize = true, ForeColor = TextMuted, Anchor = AnchorStyles.Left, Margin = new Padding(0, 5, 4, 3) }; }
+        Button DestructiveButton(string text, int width)
+        {
+            var button = ActionButton(text, false, width);
+            UiFoundation.ConfigureActionButton(button, UiActionRole.Destructive);
+            return button;
+        }
+
+        Label FieldLabel(string text) { return new Label { Text = text, AutoSize = true, ForeColor = TextMuted, Anchor = AnchorStyles.Left, Margin = new Padding(0, 5, UiTokens.SpaceXs, 3), TabStop = false }; }
 
         Control LabeledField(string label, Control input)
         {
-            var field = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0, 0, 8, 0) };
+            var field = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0, 0, UiTokens.SpaceSm, 0), AccessibleName = label + " field", AccessibleRole = AccessibleRole.Grouping };
             field.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
             field.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             input.Dock = DockStyle.Fill;
-            field.Controls.Add(new Label { Text = label, Dock = DockStyle.Fill, ForeColor = TextMuted, TextAlign = ContentAlignment.BottomLeft }, 0, 0);
+            field.Controls.Add(new Label { Text = label, Dock = DockStyle.Fill, ForeColor = TextMuted, TextAlign = ContentAlignment.BottomLeft, AccessibleName = label + " label", AccessibleRole = AccessibleRole.StaticText, TabStop = false }, 0, 0);
             field.Controls.Add(input, 0, 1);
             return field;
         }

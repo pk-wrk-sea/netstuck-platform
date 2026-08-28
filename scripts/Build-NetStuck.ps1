@@ -1,54 +1,62 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    [string]$ProvenancePath
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$sourceRoot = Join-Path $repoRoot 'src\NetStuck'
-$compiler = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+. (Join-Path $PSScriptRoot 'NetStuck.BuildProvenance.ps1')
 
-if (-not $OutputDirectory) {
-    $OutputDirectory = Join-Path $repoRoot 'artifacts\build'
-}
-if (-not (Test-Path -LiteralPath $compiler)) {
-    throw "The .NET Framework compiler was not found: $compiler"
-}
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repoRoot 'artifacts\build' }
+$outputDirectoryFull = [System.IO.Path]::GetFullPath($OutputDirectory)
+New-Item -ItemType Directory -Path $outputDirectoryFull -Force | Out-Null
+$output = Join-Path $outputDirectoryFull 'NetStuck.exe'
+if (-not $ProvenancePath) { $ProvenancePath = Join-Path $outputDirectoryFull 'NetStuck.build-provenance.json' }
+$provenancePathFull = [System.IO.Path]::GetFullPath($ProvenancePath)
 
-New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
-$output = Join-Path $OutputDirectory 'NetStuck.exe'
-$icon = Join-Path $sourceRoot 'assets\netstuck-bright.ico'
-$sources = @(
-    'NetOpsCore.cs',
-    'NetStuck.cs',
-    'NetStuck.Features.cs',
-    'NetStuck.Release1.cs',
-    'NetStuck.V103.cs'
-) | ForEach-Object { Join-Path $sourceRoot $_ }
-$references = @(
-    'System.dll',
-    'System.Core.dll',
-    'System.Data.dll',
-    'System.Data.DataSetExtensions.dll',
-    'System.Drawing.dll',
-    'System.Windows.Forms.dll',
-    'System.Web.Extensions.dll'
-) | ForEach-Object { "/reference:$_" }
-
-$arguments = @(
-    '/nologo',
-    '/target:winexe',
-    '/optimize+',
-    '/platform:anycpu',
-    "/out:$output",
-    "/win32icon:$icon"
-) + $references + $sources
-
+$compiler = Resolve-NetStuckCompilerPath
+$provenance = Get-NetStuckBuildProvenance -RepositoryRoot $repoRoot -OutputPath $output -CompilerPath $compiler
+$arguments = @($provenance.ActualCompilerArguments)
 & $compiler @arguments
-if ($LASTEXITCODE -ne 0) {
-    throw "NetStuck compilation failed with exit code $LASTEXITCODE."
-}
+if ($LASTEXITCODE -ne 0) { throw "NetStuck compilation failed with exit code $LASTEXITCODE." }
 
 $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($output).FileVersion
+$record = [ordered]@{
+    SchemaVersion = 2
+    GeneratedUtc = [DateTime]::UtcNow.ToString('o')
+    Output = [ordered]@{
+        Path = $output
+        Size = [int64](Get-Item -LiteralPath $output).Length
+        Sha256 = Get-NetStuckSha256 -Path $output
+        FileVersion = $version
+    }
+    SourceInputFingerprint = $provenance.SourceInputFingerprint
+    ToolchainFingerprint = $provenance.ToolchainFingerprint
+    BuildInvocationFingerprint = $provenance.BuildInvocationFingerprint
+    ActualCompilerArgumentFingerprint = $provenance.ActualCompilerArgumentFingerprint
+    ReferenceInputFingerprint = $provenance.ReferenceInputFingerprint
+    Compiler = $provenance.Compiler
+    Runtime = $provenance.Runtime
+    PowerShellHost = $provenance.PowerShellHost
+    ImplicitInputs = $provenance.ImplicitInputs
+    NormalizedCompilerArguments = @($provenance.NormalizedCompilerArguments)
+    ActualCompilerArguments = @($provenance.ActualCompilerArguments)
+    CompilerArgumentSpecifications = @($provenance.CompilerArgumentSpecifications)
+    CompilerArgumentSerialization = $provenance.CompilerArgumentSerialization
+    CompilerDiagnosticCommandLine = $provenance.CompilerDiagnosticCommandLine
+    SourceInputs = @($provenance.SourceInputs)
+    ToolchainInputs = @($provenance.ToolchainInputs)
+    ReferenceInputs = @($provenance.ReferenceInputs)
+}
+$provenanceParent = Split-Path -Parent $provenancePathFull
+if (-not (Test-Path -LiteralPath $provenanceParent)) { New-Item -ItemType Directory -Path $provenanceParent -Force | Out-Null }
+[System.IO.File]::WriteAllText($provenancePathFull, ($record | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding($false)))
+
 Write-Output "Built: $output"
 Write-Output "File version: $version"
+Write-Output "Source input fingerprint: $($provenance.SourceInputFingerprint)"
+Write-Output "Toolchain fingerprint: $($provenance.ToolchainFingerprint)"
+Write-Output "Build invocation fingerprint: $($provenance.BuildInvocationFingerprint)"
+Write-Output "Reference input fingerprint: $($provenance.ReferenceInputFingerprint)"
+Write-Output "Build provenance: $provenancePathFull"

@@ -74,6 +74,31 @@ namespace NetStuck
         public Dictionary<string, TraceLookupCacheItemV120> Dns { get; set; }
     }
 
+    sealed class TraceRunV123
+    {
+        public readonly object SyncRoot = new object();
+        public readonly HashSet<Task> InFlightTasks = new HashSet<Task>();
+        public readonly TaskCompletionSource<bool> Quiesced = new TaskCompletionSource<bool>();
+        public readonly TaskCompletionSource<bool> Completed = new TaskCompletionSource<bool>();
+        public readonly CancellationTokenSource Cancellation = new CancellationTokenSource();
+        public readonly int ProbeTimeoutMs;
+        public readonly int MaximumOutstandingCycles;
+        public bool StopRequested;
+        public bool DrainTimedOut;
+        public int StartedTasks;
+        public int ObservedTasks;
+        public int FaultedTasks;
+        public int CancelledTasks;
+        public int ActiveCallbacks;
+        public int StartedAfterStop;
+
+        public TraceRunV123(int probeTimeoutMs, int maximumOutstandingCycles)
+        {
+            ProbeTimeoutMs = probeTimeoutMs;
+            MaximumOutstandingCycles = maximumOutstandingCycles;
+        }
+    }
+
     sealed class TraceSessionV103
     {
         public int Number;
@@ -100,6 +125,7 @@ namespace NetStuck
         public BindingSource EventSource;
         public ComboBox EventFilter;
         public CancellationTokenSource Cancellation;
+        public TraceRunV123 ActiveRun;
         public bool Paused;
         public int CycleNumber;
         public int LastAppliedCycle;
@@ -143,6 +169,7 @@ namespace NetStuck
         string traceLookupCachePathV120;
         readonly object traceLookupCacheLockV120 = new object();
         System.Threading.Timer traceLookupSaveTimerV120;
+        Func<int, int, CancellationToken, Task> traceProbeGateV123 = null;
 
         void InitializeTraceLookupCacheV120()
         {
@@ -458,7 +485,7 @@ namespace NetStuck
             session.Stop = DangerButton("STOP", 104); session.Stop.Enabled = false; session.Stop.Margin = new Padding(0, 1, 8, 1);
             session.Start.Click += async delegate { await RunTraceSessionAsync(session); };
             session.Pause.Click += delegate { ToggleTracePause(session); };
-            session.Stop.Click += delegate { RequestTraceSessionStop(session); };
+            session.Stop.Click += async delegate { await StopTraceSessionAsync(session); };
             actionFields.Controls.AddRange(new Control[] { session.Start, session.Pause, session.Stop });
             controls.Controls.Add(primaryFields, 0, 0); controls.Controls.Add(serviceFields, 0, 1); controls.Controls.Add(actionFields, 0, 2);
 
@@ -868,7 +895,8 @@ namespace NetStuck
 
         async Task RunTraceSessionAsync(TraceSessionV103 session)
         {
-            if (session.Cancellation != null) return;
+            if (session.Cancellation != null || session.ActiveRun != null) return;
+            EnsureTraceUiSynchronizationContextV123();
             string host = session.Target.Text.Trim(); if (host.Length == 0) return;
             RefreshHopDescriptions(); RememberTraceTargetSession(session, host);
             session.Table.Rows.Clear(); session.EventTable.Rows.Clear(); session.Stats.Clear(); session.LatestCycleByHop.Clear(); session.LastResolvedNames.Clear();
@@ -876,7 +904,9 @@ namespace NetStuck
             session.KnownDestinationHop = 0; session.LastFullProbeCycle = 0; session.ForceFullProbeCycles = 0;
             string protocol = session.Protocol.Text; int port = (int)session.Port.Value; int packetSize = (int)session.PacketSize.Value;
             int maxHops = (int)session.MaxHops.Value; int timeout = (int)session.Timeout.Value; int interval = (int)session.Interval.Value;
-            session.Cancellation = new CancellationTokenSource(); CancellationToken token = session.Cancellation.Token;
+            int maxOutstanding = MaxOutstandingPollsV105(timeout, interval);
+            var run = new TraceRunV123(timeout, maxOutstanding);
+            session.ActiveRun = run; session.Cancellation = run.Cancellation; CancellationToken token = run.Cancellation.Token;
             SetTraceSessionRunning(session, true); session.State.Text = "Target: Discovering"; session.State.ForeColor = Warning;
             AddTraceEvent(session, "Info", 0, "Trace started - " + protocol + (protocol == "ICMP" ? "" : "/" + port) + ". Route hops use ICMP TTL probes.");
             Log("ACTION", "Traceroute", "Session " + session.Number + " started: " + host + " (" + protocol + ")");
@@ -892,13 +922,19 @@ namespace NetStuck
                 }
                 session.Destination.Text = "Destination: " + destination;
                 int activeHops = maxHops;
-                int maxOutstanding = MaxOutstandingPollsV105(timeout, interval);
                 var pending = new List<Task<TraceCycleResultV105>>();
                 var cadence = Stopwatch.StartNew();
                 long nextDueMs = 0;
                 bool wasPaused = false;
                 while (!token.IsCancellationRequested)
                 {
+                    if (session.Paused)
+                    {
+                        wasPaused = true;
+                        await Task.Delay(80, token);
+                        continue;
+                    }
+
                     for (int i = 0; i < pending.Count; )
                     {
                         if (!pending[i].IsCompleted) { i++; continue; }
@@ -911,13 +947,6 @@ namespace NetStuck
                         }
                         catch (OperationCanceledException) { }
                         catch (Exception ex) { AddTraceEvent(session, "Error", 0, FriendlyError(ex)); }
-                    }
-
-                    if (session.Paused)
-                    {
-                        wasPaused = true;
-                        await WaitForTraceWakeV105(pending, 80, token);
-                        continue;
                     }
 
                     if (wasPaused)
@@ -934,7 +963,8 @@ namespace NetStuck
                             int cycle = ++session.CycleNumber;
                             session.Cycle.Text = "Cycle: " + cycle;
                             int[] ttls = BuildAdaptiveTraceTtlsV120(session, cycle, activeHops);
-                            pending.Add(ProbeTraceCycleV105Async(cycle, destination, parsed, ttls, timeout, packetSize, protocol, port, token));
+                            Task<TraceCycleResultV105> cycleTask = ProbeTraceCycleV105Async(run, cycle, destination, parsed, ttls, timeout, packetSize, protocol, port, token);
+                            pending.Add(TrackTraceTaskV123(run, cycleTask));
                         }
                         nextDueMs += interval;
                         if (nowMs >= nextDueMs)
@@ -948,24 +978,109 @@ namespace NetStuck
                     await WaitForTraceWakeV105(pending, (int)Math.Max(1, nextDueMs - nowMs), token);
                 }
 
-                try { await Task.WhenAll(pending.ToArray()); }
-                catch (OperationCanceledException) { }
-                catch { }
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 AddTraceEvent(session, "Error", 0, FriendlyError(ex)); Log("ERROR", "Traceroute", "Session " + session.Number + ": " + FriendlyError(ex));
             }
-            finally
+
+            RequestTraceRunCancellationV123(run);
+            bool drained = await DrainTraceRunV123Async(run);
+            if (!drained)
             {
-                CancellationTokenSource completed = session.Cancellation; session.Cancellation = null;
-                if (completed != null) completed.Dispose();
+                int pendingCount;
+                lock (run.SyncRoot) pendingCount = run.InFlightTasks.Count;
                 if (!appClosing && !IsDisposed && !Disposing)
+                    AddTraceEvent(session, "Error", 0, "Trace stop incomplete: " + pendingCount + " owned task(s) still pending after the derived drain timeout.");
+                await run.Quiesced.Task;
+            }
+
+            if (Object.ReferenceEquals(session.ActiveRun, run))
+            {
+                session.ActiveRun = null; session.Cancellation = null;
+                run.Cancellation.Dispose();
+                if (!appClosing && !IsDisposed && !Disposing && session.Page != null && !session.Page.IsDisposed)
                 {
                     AddTraceEvent(session, "Info", 0, "Trace stopped"); SetTraceSessionRunning(session, false);
                 }
             }
+            run.Completed.TrySetResult(true);
+        }
+
+        Task<T> TrackTraceTaskV123<T>(TraceRunV123 run, Task<T> task)
+        {
+            TrackTraceTaskV123(run, (Task)task);
+            return task;
+        }
+
+        void TrackTraceTaskV123(TraceRunV123 run, Task task)
+        {
+            if (run == null || task == null) throw new ArgumentNullException();
+            lock (run.SyncRoot)
+            {
+                if (run.StopRequested) run.StartedAfterStop++;
+                run.InFlightTasks.Add(task);
+                run.StartedTasks++;
+                run.ActiveCallbacks++;
+            }
+            task.ContinueWith(completed =>
+            {
+                if (completed.IsFaulted) { Exception observed = completed.Exception; }
+                bool signal;
+                lock (run.SyncRoot)
+                {
+                    run.InFlightTasks.Remove(completed);
+                    run.ObservedTasks++;
+                    if (completed.IsFaulted) run.FaultedTasks++;
+                    if (completed.IsCanceled) run.CancelledTasks++;
+                    run.ActiveCallbacks--;
+                    signal = run.StopRequested && run.InFlightTasks.Count == 0 && run.ActiveCallbacks == 0;
+                }
+                if (signal) run.Quiesced.TrySetResult(true);
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
+
+        void RequestTraceRunCancellationV123(TraceRunV123 run)
+        {
+            if (run == null) return;
+            bool signal;
+            lock (run.SyncRoot)
+            {
+                run.StopRequested = true;
+                signal = run.InFlightTasks.Count == 0 && run.ActiveCallbacks == 0;
+            }
+            try { run.Cancellation.Cancel(); } catch (ObjectDisposedException) { }
+            if (signal) run.Quiesced.TrySetResult(true);
+        }
+
+        static int GetTraceDrainTimeoutV123(TraceRunV123 run)
+        {
+            int concurrencyGrace = Math.Max(1, run.MaximumOutstandingCycles) * 250;
+            return checked(Math.Max(200, run.ProbeTimeoutMs) + concurrencyGrace);
+        }
+
+        async Task<bool> DrainTraceRunV123Async(TraceRunV123 run)
+        {
+            RequestTraceRunCancellationV123(run);
+            Task timeout = Task.Delay(GetTraceDrainTimeoutV123(run));
+            Task completed = await Task.WhenAny(run.Quiesced.Task, timeout);
+            if (completed != run.Quiesced.Task)
+            {
+                run.DrainTimedOut = true;
+                return false;
+            }
+            await run.Quiesced.Task;
+            lock (run.SyncRoot)
+                return run.InFlightTasks.Count == 0 && run.ActiveCallbacks == 0 && run.ObservedTasks == run.StartedTasks;
+        }
+
+        void EnsureTraceUiSynchronizationContextV123()
+        {
+            if (InvokeRequired)
+                throw new InvalidOperationException("Traceroute must start on the WinForms UI thread.");
+            if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
+                SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
         }
 
         async Task WaitForTraceWakeV105(List<Task<TraceCycleResultV105>> pending, int delayMs, CancellationToken token)
@@ -997,12 +1112,18 @@ namespace NetStuck
             return selected.OrderBy(value => value).ToArray();
         }
 
-        async Task<TraceCycleResultV105> ProbeTraceCycleV105Async(int cycle, string destination, IPAddress parsed, int[] ttls,
+        async Task<TraceCycleResultV105> ProbeTraceCycleV105Async(TraceRunV123 run, int cycle, string destination, IPAddress parsed, int[] ttls,
             int timeout, int packetSize, string protocol, int port, CancellationToken token)
         {
-            Task<HopProbe>[] tasks = (ttls ?? new int[0])
-                .Select(ttl => ProbeHopV103Async(destination, ttl, timeout, packetSize)).ToArray();
-            Task<ServiceProbeResult> serviceTask = protocol == "ICMP" ? null : ProbeServiceAsync(parsed, protocol, port, packetSize, timeout, "", token);
+            int[] requestedTtls = ttls ?? new int[0];
+            var tasks = new Task<HopProbe>[requestedTtls.Length];
+            for (int index = 0; index < requestedTtls.Length; index++)
+            {
+                Task<HopProbe> probe = ProbeHopV103Async(destination, requestedTtls[index], timeout, packetSize, token);
+                tasks[index] = TrackTraceTaskV123(run, probe);
+            }
+            Task<ServiceProbeResult> serviceTask = protocol == "ICMP" ? null
+                : TrackTraceTaskV123(run, ProbeServiceAsync(parsed, protocol, port, packetSize, timeout, "", token));
             HopProbe[] probes = await Task.WhenAll(tasks).ConfigureAwait(false);
             ServiceProbeResult service = serviceTask == null ? null : await serviceTask.ConfigureAwait(false);
             return new TraceCycleResultV105 { Cycle = cycle, Probes = probes, Service = service };
@@ -1058,8 +1179,8 @@ namespace NetStuck
                             if (!String.Equals(stat.Address, probe.Address, StringComparison.OrdinalIgnoreCase))
                             {
                                 stat.Address = probe.Address; stat.Hostname = "";
-                                ResolveTraceHopNameV103(session, probe.Hop, probe.Address);
-                                QueueTraceProviderLookupV104(session, probe.Hop, probe.Address);
+                                ResolveTraceHopNameV103(session, probe.Hop, probe.Address, session.Cancellation);
+                                QueueTraceProviderLookupV104(session, probe.Hop, probe.Address, session.Cancellation);
                             }
                         }
                     }
@@ -1150,8 +1271,14 @@ namespace NetStuck
             try { grid.HorizontalScrollingOffset = Math.Max(0, position.HorizontalOffset); } catch { }
         }
 
-        async Task<HopProbe> ProbeHopV103Async(string destination, int hop, int timeout, int packetSize)
+        async Task<HopProbe> ProbeHopV103Async(string destination, int hop, int timeout, int packetSize, CancellationToken token)
         {
+            Func<int, int, CancellationToken, Task> gate = traceProbeGateV123;
+            if (gate != null)
+            {
+                await gate(hop, timeout, token).ConfigureAwait(false);
+                return new HopProbe { Hop = hop, Address = "", Latency = 1, IpStatus = IPStatus.Success, Status = "Reached", Responded = true, Reached = true };
+            }
             var result = new HopProbe { Hop = hop };
             try
             {
@@ -1168,7 +1295,7 @@ namespace NetStuck
             return result;
         }
 
-        async void ResolveTraceHopNameV103(TraceSessionV103 session, int hop, string address)
+        async void ResolveTraceHopNameV103(TraceSessionV103 session, int hop, string address, CancellationTokenSource traceRun)
         {
             if (String.IsNullOrWhiteSpace(address)) return;
             try
@@ -1194,9 +1321,16 @@ namespace NetStuck
                         ScheduleTraceLookupCacheSaveV120();
                     }
                 }
-                ApplyTraceDnsResultV120(session, hop, address, hostname, previousCached);
+                if (IsTraceRunActiveV123(session, traceRun))
+                    ApplyTraceDnsResultV120(session, hop, address, hostname, previousCached);
             }
             catch { }
+        }
+
+        bool IsTraceRunActiveV123(TraceSessionV103 session, CancellationTokenSource traceRun)
+        {
+            return session != null && traceRun != null && Object.ReferenceEquals(session.Cancellation, traceRun)
+                && !traceRun.IsCancellationRequested && !appClosing && !IsDisposed && !Disposing;
         }
 
         void ApplyTraceDnsResultV120(TraceSessionV103 session, int hop, string address, string hostname, string previousCached)
@@ -1213,7 +1347,7 @@ namespace NetStuck
             else if (!String.IsNullOrWhiteSpace(hostname)) AddTraceEvent(session, "DNS", hop, address + " resolved to " + hostname);
         }
 
-        void QueueTraceProviderLookupV104(TraceSessionV103 session, int hop, string address)
+        void QueueTraceProviderLookupV104(TraceSessionV103 session, int hop, string address, CancellationTokenSource traceRun)
         {
             if (!IsPublicAddressV104(address) || !String.IsNullOrWhiteSpace(GetHopDescription(address))) return;
             lock (traceLookupCacheLockV120)
@@ -1227,10 +1361,10 @@ namespace NetStuck
                 else if (traceProviderCacheV104.ContainsKey(address)) return;
             }
             if (!traceProviderPendingV104.Add(address)) return;
-            ResolveTraceProviderV104(session, hop, address);
+            ResolveTraceProviderV104(session, hop, address, traceRun);
         }
 
-        async void ResolveTraceProviderV104(TraceSessionV103 sourceSession, int hop, string address)
+        async void ResolveTraceProviderV104(TraceSessionV103 sourceSession, int hop, string address, CancellationTokenSource traceRun)
         {
             await traceProviderGateV104.WaitAsync();
             string provider = "";
@@ -1261,7 +1395,7 @@ namespace NetStuck
             catch (Exception ex)
             {
                 provider = "Public IP (ISP unavailable)";
-                if (!appClosing && !IsDisposed && !Disposing)
+                if (IsTraceRunActiveV123(sourceSession, traceRun))
                     AddTraceEvent(sourceSession, "Error", hop, address + " ISP lookup: " + FriendlyError(ex));
             }
             finally
@@ -1277,7 +1411,8 @@ namespace NetStuck
             }
 
             if (appClosing || IsDisposed || Disposing) return;
-            foreach (TraceSessionV103 session in traceSessionsV103)
+            foreach (TraceSessionV103 session in traceSessionsV103.Where(candidate =>
+                candidate.Cancellation != null && !candidate.Cancellation.IsCancellationRequested))
             {
                 foreach (DataRow row in session.Table.Rows.Cast<DataRow>().Where(r => String.Equals(Convert.ToString(r["Address"]), address, StringComparison.OrdinalIgnoreCase)))
                     if (String.IsNullOrWhiteSpace(GetHopDescription(address)))
@@ -1286,7 +1421,8 @@ namespace NetStuck
                         NotifyTraceHopChangedV120(session, Convert.ToInt32(row["Hop"]));
                     }
             }
-            if (!provider.StartsWith("Public IP (", StringComparison.OrdinalIgnoreCase))
+            if (IsTraceRunActiveV123(sourceSession, traceRun)
+                && !provider.StartsWith("Public IP (", StringComparison.OrdinalIgnoreCase))
                 AddTraceEvent(sourceSession, "Info", hop, address + " provider: " + provider);
         }
 
@@ -1346,12 +1482,30 @@ namespace NetStuck
             AddTraceEvent(session, "Info", 0, session.Paused ? "Trace paused" : "Trace resumed");
         }
 
-        void RequestTraceSessionStop(TraceSessionV103 session)
+        async Task<bool> StopTraceSessionAsync(TraceSessionV103 session)
         {
-            if (session.Cancellation == null) return;
+            TraceRunV123 run = session == null ? null : session.ActiveRun;
+            if (run == null) return true;
             session.Stop.Enabled = false; session.Stop.Text = "STOPPING"; session.Stop.BackColor = Warning; session.Stop.ForeColor = Color.White;
             session.Stop.FlatAppearance.BorderColor = Warning;
-            session.Paused = false; session.Cancellation.Cancel();
+            session.Paused = false; RequestTraceRunCancellationV123(run);
+            Task timeout = Task.Delay(GetTraceDrainTimeoutV123(run));
+            Task completed = await Task.WhenAny(run.Completed.Task, timeout);
+            if (completed == run.Completed.Task)
+            {
+                await run.Completed.Task;
+                return true;
+            }
+            int pendingCount;
+            lock (run.SyncRoot) pendingCount = run.InFlightTasks.Count;
+            run.DrainTimedOut = true;
+            if (!appClosing && !IsDisposed && !Disposing)
+            {
+                session.State.Text = "Target: Stop incomplete (" + pendingCount + " task(s) pending)";
+                session.State.ForeColor = Danger;
+                AddTraceEvent(session, "Error", 0, "Stop incomplete after derived probe drain timeout; pending owned tasks: " + pendingCount);
+            }
+            return false;
         }
 
         void SetTraceSessionRunning(TraceSessionV103 session, bool running)
@@ -1393,7 +1547,27 @@ namespace NetStuck
 
         void AddTraceEvent(TraceSessionV103 session, string type, int hop, string message)
         {
-            if (session.EventTable == null) return;
+            if (session == null || session.EventTable == null || appClosing || IsDisposed || Disposing) return;
+            Control dispatcher = session.EventGrid ?? (Control)this;
+            if (dispatcher.IsDisposed || dispatcher.Disposing) return;
+            if (dispatcher.InvokeRequired)
+            {
+                if (!dispatcher.IsHandleCreated) return;
+                try
+                {
+                    dispatcher.Invoke(new Action<TraceSessionV103, string, int, string>(AddTraceEvent), session, type, hop, message);
+                }
+                catch (ObjectDisposedException)
+                {
+                    if (!appClosing && !dispatcher.IsDisposed) throw;
+                }
+                catch (InvalidOperationException)
+                {
+                    if (!appClosing && !dispatcher.IsDisposed && dispatcher.IsHandleCreated) throw;
+                }
+                return;
+            }
+            if (appClosing || dispatcher.IsDisposed || dispatcher.Disposing) return;
             session.EventTable.Rows.Add(DateTime.Now.ToString("HH:mm:ss"), type, hop == 0 ? (object)DBNull.Value : hop, message);
             while (session.EventTable.Rows.Count > 1000) session.EventTable.Rows.RemoveAt(0);
         }
@@ -1409,7 +1583,7 @@ namespace NetStuck
         {
             pingPaused = false;
             foreach (TraceSessionV103 session in traceSessionsV103)
-                if (session.Cancellation != null) try { session.Cancellation.Cancel(); } catch { }
+                if (session.ActiveRun != null) RequestTraceRunCancellationV123(session.ActiveRun);
         }
 
         async Task RefreshNetworkIdentityAsync()
