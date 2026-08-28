@@ -29,7 +29,11 @@
    .\scripts\Package-NetStuck.ps1 -Version 1.2.3 -PlinkPath C:\path\to\plink.exe
    ```
 
-8. Re-verify `SHA256SUMS.txt` and smoke-start `NetStuck.exe` from the staged portable folder.
+8. Re-verify `SHA256SUMS.txt` and run the fail-closed packaged smoke from the staged portable folder:
+
+   ```powershell
+   .\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.1.2.3\NetStuck.exe
+   ```
 9. Commit, push and wait for Windows CI to pass.
 10. Create an annotated tag such as `v1.2.3` and a GitHub Release with the ZIP and ZIP SHA256.
 11. Clone/download into a clean directory and repeat the startup smoke test before marking the release stable.
