@@ -21,6 +21,10 @@ Update folders live under `%LOCALAPPDATA%\NetStuck\updates\<operation-id>`. Each
 
 If power loss or termination interrupts installation, close NetStuck and run the helper from that operation folder with `--recover-update`. It uses the recorded original file inventory, restores the backup and starts the original application. Do not run recovery while any NetStuck instance from that installation is open. Never use a recovery record supplied by someone else.
 
+## Themes (1.3.3)
+
+Use the Theme selector in the application header to choose Light or Dark. The optional `Theme` property is saved in existing state schema 6; missing or unknown values select Light. The application recolors existing controls without clearing or rebinding results. Text, status indicators, grids, selected rows, dropdown content and application dialogs use matching palettes. The Collector terminal retains its readable dark palette. Windows-native file/message dialogs and system chrome follow Windows rather than this selector. UI screenshots, repeated switching and physical DPI acceptance for 1.3.3 remain unverified under the owner's no-test instruction.
+
 ## Displays and columns
 
 Normal minimum window size remains 1100×700. On a smaller working area the window fits the monitor; individual pages retain a minimum usable canvas with scrollbars. Splitter bounds are recalculated as the window changes. Collector's taller input surface can be scrolled to reach commands and actions without collapsing the result area. Traceroute Columns controls hide/show existing named columns independently for each session and persist in state schema 6 as optional fields. At least one column must remain visible. Column dragging/resizing shows a blue dashed guideline.

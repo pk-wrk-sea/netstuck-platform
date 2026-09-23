@@ -192,6 +192,7 @@ namespace NetStuck
                 bar.Controls.Add(save); bar.Controls.Add(cancel);
                 dialog.Controls.Add(input); dialog.Controls.Add(hint); dialog.Controls.Add(bar);
                 dialog.AcceptButton = save; dialog.CancelButton = cancel;
+                ApplyTheme(dialog);
                 if (dialog.ShowDialog(this) != DialogResult.OK) return;
                 traceHopInfoText = input.Text;
                 RefreshHopDescriptions();

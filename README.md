@@ -1,6 +1,8 @@
 # NetStuck
 
-NetStuck is a portable Windows network diagnostics and configuration-collection application targeting .NET Framework 4.x. **v1.3.2 is an owner update-trial release** to exercise Update now from 1.3.1. Tests were explicitly skipped for 1.3.2; the earlier 1.3.1 results are historical evidence, not validation of this package.
+NetStuck is a portable Windows network diagnostics and configuration-collection application targeting .NET Framework 4.x. **v1.3.3 adds Light and Dark themes**. Tests and runtime/UI acceptance were not run, following the owner's no-test instruction.
+
+Choose **Theme → Dark** (or Light) in the application header. The preference is saved locally and restored after restart. Text, status colors, tables, selection and application dialogs follow the chosen palette. Native Windows file/message dialogs and system chrome follow Windows.
 
 ## Features
 
@@ -16,7 +18,7 @@ NetStuck is a portable Windows network diagnostics and configuration-collection 
 
 ## Repository baseline and candidate
 
-v1.3.2 retains the local v1.3.1 implementation and changes version metadata/release notes. Normal future validation uses the command below; it was not run for this owner-requested trial:
+v1.3.3 builds on the published v1.3.2 snapshot and adds theme selection. Normal future validation uses the command below; it was not run for this owner-requested release:
 
 ```powershell
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10

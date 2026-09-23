@@ -429,7 +429,7 @@ namespace NetStuck
             var controls = new TableLayoutPanel
             {
                 Dock = DockStyle.Top, Height = 184, ColumnCount = 1, RowCount = 3,
-                Padding = new Padding(12, 8, 12, 8), BackColor = Color.FromArgb(248, 250, 252),
+                Padding = new Padding(12, 8, 12, 8), BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)),
                 Margin = new Padding(0), Tag = "TraceControlPanelV123"
             };
             controls.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -438,7 +438,7 @@ namespace NetStuck
             controls.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             controls.Paint += delegate(object sender, PaintEventArgs e)
             {
-                using (var pen = new Pen(Color.FromArgb(203, 213, 225)))
+                using (var pen = new Pen(Border))
                     e.Graphics.DrawRectangle(pen, 0, 0, Math.Max(0, controls.Width - 1), Math.Max(0, controls.Height - 1));
             };
             var primaryFields = new TableLayoutPanel
@@ -486,7 +486,7 @@ namespace NetStuck
             actionFields.Controls.AddRange(new Control[] { session.Start, session.Pause, session.Stop });
             controls.Controls.Add(primaryFields, 0, 0); controls.Controls.Add(serviceFields, 0, 1); controls.Controls.Add(actionFields, 0, 2);
 
-            var info = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, BackColor = Color.FromArgb(248, 250, 252), Padding = new Padding(8, 7, 8, 0), WrapContents = false };
+            var info = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)), Padding = new Padding(8, 7, 8, 0), WrapContents = false };
             session.Cycle = new Label { Text = "Cycle: 0", AutoSize = true, ForeColor = TextMuted };
             session.Destination = new Label { Text = "Destination: -", AutoSize = true, ForeColor = TextMuted, Margin = new Padding(22, 0, 0, 0) };
             session.State = new Label { Text = "Target: Waiting", AutoSize = true, ForeColor = Warning, Font = new Font("Segoe UI Semibold", 9), Margin = new Padding(22, 0, 0, 0) };
@@ -566,8 +566,8 @@ namespace NetStuck
 
         Control TraceInputFrameV110(Control input)
         {
-            var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(2), Margin = new Padding(0), BackColor = Color.White, Tag = "TraceInputFrame" };
-            input.Dock = DockStyle.None; input.Anchor = AnchorStyles.Left | AnchorStyles.Top; input.Margin = new Padding(0); input.BackColor = Color.White;
+            var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(2), Margin = new Padding(0), BackColor = Surface, Tag = "TraceInputFrame" };
+            input.Dock = DockStyle.None; input.Anchor = AnchorStyles.Left | AnchorStyles.Top; input.Margin = new Padding(0); input.BackColor = Surface;
             var numeric = input as NumericUpDown;
             if (numeric != null) numeric.BorderStyle = BorderStyle.None;
             var text = input as TextBox;
@@ -579,12 +579,12 @@ namespace NetStuck
                 combo.DrawMode = DrawMode.OwnerDrawFixed;
                 combo.DrawItem += delegate(object sender, DrawItemEventArgs e)
                 {
-                    Color fill = Color.White;
+                    Color fill = Surface;
                     bool selected = combo.DroppedDown && (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-                    if (selected) fill = Color.FromArgb(219, 234, 254);
+                    if (selected) fill = UiPalette.Selection;
                     using (var brush = new SolidBrush(fill)) e.Graphics.FillRectangle(brush, e.Bounds);
                     string value = e.Index >= 0 && e.Index < combo.Items.Count ? Convert.ToString(combo.Items[e.Index]) : combo.Text;
-                    Color textColor = combo.Enabled ? TextMain : TextMuted;
+                    Color textColor = selected ? UiPalette.SelectionText : combo.Enabled ? TextMain : TextMuted;
                     TextRenderer.DrawText(e.Graphics, value ?? "", combo.Font, e.Bounds, textColor,
                         TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
                     if ((e.State & DrawItemState.Focus) == DrawItemState.Focus) e.DrawFocusRectangle();
@@ -599,7 +599,7 @@ namespace NetStuck
             frame.Resize += delegate { layout(); };
             frame.Paint += delegate(object sender, PaintEventArgs e)
             {
-                Color color = input.Focused ? Accent : input.Enabled ? Color.FromArgb(148, 163, 184) : Color.FromArgb(203, 213, 225);
+                Color color = input.Focused ? Accent : Border;
                 using (var pen = new Pen(color)) e.Graphics.DrawRectangle(pen, 0, 0, Math.Max(0, frame.Width - 1), Math.Max(0, frame.Height - 1));
             };
             input.Enter += delegate { frame.Invalidate(); };
@@ -613,7 +613,7 @@ namespace NetStuck
 
         void ApplyTraceInputPaletteV122(Control input, Panel frame)
         {
-            Color fill = Color.White;
+            Color fill = Surface;
             frame.BackColor = fill;
             input.BackColor = fill;
             foreach (Control child in input.Controls) child.BackColor = fill;
@@ -656,7 +656,7 @@ namespace NetStuck
             if (pingCancellation == null) return;
             pingPaused = !pingPaused;
             pingPauseButton.Text = pingPaused ? "RESUME" : "PAUSE";
-            pingPauseButton.BackColor = pingPaused ? Color.FromArgb(249, 115, 22) : Surface;
+            pingPauseButton.BackColor = pingPaused ? UiPalette.Background(Color.FromArgb(249, 115, 22)) : Surface;
             pingPauseButton.ForeColor = pingPaused ? Color.White : TextMain;
             pingPauseButton.FlatAppearance.BorderColor = pingPaused ? Color.FromArgb(249, 115, 22) : Border;
             appStatus.Text = pingPaused ? "Ping monitoring paused" : "Ping monitoring resumed";
@@ -1476,7 +1476,7 @@ namespace NetStuck
         {
             if (session.Cancellation == null) return;
             session.Paused = !session.Paused; session.Pause.Text = session.Paused ? "RESUME" : "PAUSE";
-            session.Pause.BackColor = session.Paused ? Color.FromArgb(249, 115, 22) : Surface;
+            session.Pause.BackColor = session.Paused ? UiPalette.Background(Color.FromArgb(249, 115, 22)) : Surface;
             session.Pause.ForeColor = session.Paused ? Color.White : TextMain;
             session.Pause.FlatAppearance.BorderColor = session.Paused ? Color.FromArgb(249, 115, 22) : Border;
             AddTraceEvent(session, "Info", 0, session.Paused ? "Trace paused" : "Trace resumed");
@@ -1486,7 +1486,7 @@ namespace NetStuck
         {
             TraceRunV123 run = session == null ? null : session.ActiveRun;
             if (run == null) return true;
-            session.Stop.Enabled = false; session.Stop.Text = "STOPPING"; session.Stop.BackColor = Warning; session.Stop.ForeColor = Color.White;
+            session.Stop.Enabled = false; session.Stop.Text = "STOPPING"; session.Stop.BackColor = UiPalette.Background(Color.FromArgb(217, 119, 6)); session.Stop.ForeColor = Color.White;
             session.Stop.FlatAppearance.BorderColor = Warning;
             session.Paused = false; RequestTraceRunCancellationV123(run);
             Task timeout = Task.Delay(GetTraceDrainTimeoutV123(run));
@@ -1517,14 +1517,14 @@ namespace NetStuck
             session.Page.Text = "Session " + session.Number + (running ? "  [RUNNING]" : "");
             if (running)
             {
-                session.Start.Text = "MONITORING"; session.Start.BackColor = Color.FromArgb(220, 252, 231); session.Start.ForeColor = Color.FromArgb(21, 128, 61); session.Start.FlatAppearance.BorderColor = Color.FromArgb(134, 239, 172);
+                session.Start.Text = "MONITORING"; session.Start.BackColor = UiPalette.Background(Color.FromArgb(220, 252, 231)); session.Start.ForeColor = UiPalette.Foreground(Color.FromArgb(21, 128, 61)); session.Start.FlatAppearance.BorderColor = Color.FromArgb(134, 239, 172);
                 session.Pause.Text = "PAUSE"; session.Pause.BackColor = Surface; session.Pause.ForeColor = TextMain; session.Pause.FlatAppearance.BorderColor = Border;
-                session.Stop.Text = "STOP NOW"; session.Stop.BackColor = Danger; session.Stop.ForeColor = Color.White; session.Stop.FlatAppearance.BorderColor = Danger;
+                session.Stop.Text = "STOP NOW"; session.Stop.BackColor = UiPalette.Background(Color.FromArgb(220, 38, 38)); session.Stop.ForeColor = Color.White; session.Stop.FlatAppearance.BorderColor = Danger;
                 appStatus.Text = "Traceroute session " + session.Number + " active";
             }
             else
             {
-                session.Paused = false; session.Start.Text = "START"; session.Start.BackColor = Accent; session.Start.ForeColor = Color.White;
+                session.Paused = false; session.Start.Text = "START"; session.Start.BackColor = UiPalette.Background(Color.FromArgb(37, 99, 235)); session.Start.ForeColor = Color.White;
                 session.Start.FlatAppearance.BorderColor = Accent;
                 session.Pause.Text = "PAUSE"; session.Pause.BackColor = Surface; session.Pause.ForeColor = TextMain; session.Pause.FlatAppearance.BorderColor = Border;
                 session.Stop.Text = "STOP"; session.Stop.BackColor = Surface; session.Stop.ForeColor = Danger;

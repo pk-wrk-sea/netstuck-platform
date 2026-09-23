@@ -1,12 +1,12 @@
 # Versioning
 
-NetStuck uses semantic versions for repository tags and releases. The current update-trial target is:
+NetStuck uses semantic versions for repository tags and releases. The current theme release target is:
 
-- Git tag/release: `v1.3.2`
-- Legacy UI display: `v.1.3.2`
-- Assembly/File version: `1.3.2.0`
+- Git tag/release: `v1.3.3`
+- Legacy UI display: `v.1.3.3`
+- Assembly/File version: `1.3.3.0`
 
-v1.3.2 is an explicitly requested owner update-trial release. Tests and CI are skipped for this release only; normal release gates remain unchanged. It is published as normal Latest because the 1.3.1 updater ignores prereleases.
+v1.3.3 adds Light and Dark theme selection on top of published v1.3.2. Tests and CI are skipped following the owner instruction; normal release gates remain unchanged. It is published as normal Latest for discovery by the existing updater.
 
 When a version upgrade is explicitly requested, update all of these locations together:
 

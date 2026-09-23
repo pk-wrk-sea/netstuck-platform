@@ -17,7 +17,7 @@ Python and the modern .NET SDK are not required.
 
 Outputs: `artifacts\build\NetStuck.exe` and `artifacts\build\NetStuck.build-provenance.json`.
 
-The production source inventory is the explicit eight-file allowlist in `scripts\NetStuck.BuildProvenance.ps1`. The build disables `CSC.RSP` and the default standard library with `/noconfig` and `/nostdlib+`, supplies `mscorlib` plus every framework reference explicitly, and records separate source-input, toolchain, normalized-invocation and reference-input fingerprints. One ordered argument specification emits both the actual `csc.exe` argv and its path-normalized one-to-one representation. The invocation fingerprint uses binary count/index/UTF-8-length/UTF-8-byte serialization; diagnostic command-line quoting is not identity. Do not add wildcard source discovery or a second compiler-argument builder.
+The production source inventory is the explicit nine-file allowlist in `scripts\NetStuck.BuildProvenance.ps1`. The build disables `CSC.RSP` and the default standard library with `/noconfig` and `/nostdlib+`, supplies `mscorlib` plus every framework reference explicitly, and records separate source-input, toolchain, normalized-invocation and reference-input fingerprints. One ordered argument specification emits both the actual `csc.exe` argv and its path-normalized one-to-one representation. The invocation fingerprint uses binary count/index/UTF-8-length/UTF-8-byte serialization; diagnostic command-line quoting is not identity. Do not add wildcard source discovery or a second compiler-argument builder.
 
 `build_windows.bat` is a convenience wrapper around the same command.
 

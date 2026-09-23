@@ -38,6 +38,7 @@ namespace NetStuck
         public List<string> TraceColumns1 { get; set; }
         public List<string> TraceColumns2 { get; set; }
         public bool? AutoCheckUpdates { get; set; }
+        public string Theme { get; set; }
         public string PingSourceIp { get; set; }
         public bool PingAdvanced { get; set; }
         public string PingProtocol { get; set; }
@@ -615,7 +616,7 @@ namespace NetStuck
             collectorCancellation = new CancellationTokenSource();
             SetTabActivity("Config Collector", true);
             collectorStart.Enabled = false; collectorStart.Text = "● COLLECTING";
-            collectorCancel.Enabled = true; collectorCancel.BackColor = Danger; collectorCancel.ForeColor = Color.White;
+            collectorCancel.Enabled = true; collectorCancel.BackColor = UiPalette.Background(Color.FromArgb(220, 38, 38)); collectorCancel.ForeColor = Color.White;
             string protocol = collectorProtocol.Text;
             int parallel = (int)collectorConcurrency.Value;
             string basic = collectorBasic.Text, commands = collectorCommands.Text;
@@ -1520,6 +1521,7 @@ namespace NetStuck
                 var ok = ActionButton("Apply", true, 90); ok.DialogResult = DialogResult.OK;
                 var all = ActionButton("Select all", false, 90); all.Click += delegate { for (int i = 0; i < list.Items.Count; i++) list.SetItemChecked(i, true); };
                 bar.Controls.Add(ok); bar.Controls.Add(all); dialog.Controls.Add(list); dialog.Controls.Add(bar); dialog.AcceptButton = ok;
+                ApplyTheme(dialog);
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     if (list.CheckedItems.Count == 0) { MessageBox.Show(this, "Keep at least one column visible."); return; }
@@ -1711,6 +1713,7 @@ namespace NetStuck
                 }
                 if (selectedTab >= 0 && selectedTab < tabs.TabCount) tabs.SelectedIndex = selectedTab;
                 if (s.Maximized) WindowState = FormWindowState.Maximized;
+                SetApplicationTheme(String.Equals(s.Theme, "Dark", StringComparison.OrdinalIgnoreCase));
             }
             catch (Exception ex) { Log("WARNING", "State", "Could not restore previous state: " + FriendlyError(ex)); }
         }
@@ -1724,6 +1727,7 @@ namespace NetStuck
                 {
                     StateVersion = 6,
                     AutoCheckUpdates = autoCheckUpdates.Checked,
+                    Theme = UiPalette.Dark ? "Dark" : "Light",
                     TraceColumns1 = traceSessionsV103[0].Grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).Select(c => c.Name).ToList(),
                     TraceColumns2 = traceSessionsV103[1].Grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).Select(c => c.Name).ToList(),
                     Width = bounds.Width, Height = bounds.Height, Left = bounds.Left, Top = bounds.Top, Maximized = WindowState == FormWindowState.Maximized,

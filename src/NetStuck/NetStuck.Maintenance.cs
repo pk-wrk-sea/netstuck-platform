@@ -214,6 +214,7 @@ namespace NetStuck
                 bar.Controls.Add(ok); bar.Controls.Add(all); dialog.Controls.Add(list); dialog.Controls.Add(bar);
                 dialog.AcceptButton = ok;
                 dialog.Height = Math.Min(dialog.Height, Screen.FromControl(this).WorkingArea.Height);
+                ApplyTheme(dialog);
                 dialog.ShowDialog(this);
             }
         }

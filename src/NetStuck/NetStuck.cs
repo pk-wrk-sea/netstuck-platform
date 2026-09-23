@@ -23,8 +23,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("NetStuck")]
 [assembly: AssemblyDescription("Network reachability and diagnostics")]
 [assembly: AssemblyCompany("NetStuck Project")]
-[assembly: AssemblyVersion("1.3.2.0")]
-[assembly: AssemblyFileVersion("1.3.2.0")]
+[assembly: AssemblyVersion("1.3.3.0")]
+[assembly: AssemblyFileVersion("1.3.3.0")]
 
 namespace NetStuck
 {
@@ -80,18 +80,18 @@ namespace NetStuck
     public sealed partial class MainForm : Form
     {
         const string AppName = "NetStuck";
-        const string AppVersion = "v.1.3.2";
+        const string AppVersion = "v.1.3.3";
         const int MaxExpandedTargets = 1024;
 
-        readonly Color Canvas = Color.FromArgb(245, 247, 250);
-        readonly Color Surface = Color.White;
-        readonly Color Border = Color.FromArgb(218, 224, 232);
-        readonly Color TextMain = Color.FromArgb(30, 41, 59);
-        readonly Color TextMuted = Color.FromArgb(100, 116, 139);
-        readonly Color Accent = Color.FromArgb(37, 99, 235);
-        readonly Color Success = Color.FromArgb(22, 163, 74);
-        readonly Color Danger = Color.FromArgb(220, 38, 38);
-        readonly Color Warning = Color.FromArgb(217, 119, 6);
+        Color Canvas { get { return UiPalette.Background(Color.FromArgb(245, 247, 250)); } }
+        Color Surface { get { return UiPalette.Background(Color.White); } }
+        Color Border { get { return UiPalette.Foreground(Color.FromArgb(218, 224, 232)); } }
+        Color TextMain { get { return UiPalette.Foreground(Color.FromArgb(30, 41, 59)); } }
+        Color TextMuted { get { return UiPalette.Foreground(Color.FromArgb(100, 116, 139)); } }
+        Color Accent { get { return UiPalette.Foreground(Color.FromArgb(37, 99, 235)); } }
+        Color Success { get { return UiPalette.Foreground(Color.FromArgb(22, 163, 74)); } }
+        Color Danger { get { return UiPalette.Foreground(Color.FromArgb(220, 38, 38)); } }
+        Color Warning { get { return UiPalette.Foreground(Color.FromArgb(217, 119, 6)); } }
 
         readonly TabControl tabs = new TabControl();
         readonly Dictionary<string, TabPage> pagesByName = new Dictionary<string, TabPage>(StringComparer.OrdinalIgnoreCase);
@@ -278,10 +278,11 @@ namespace NetStuck
                 Padding = new Padding(UiTokens.SpaceLg, UiTokens.SpaceSm, UiTokens.SpaceLg, UiTokens.SpaceSm)
             };
             header.Paint += delegate(object sender, PaintEventArgs e) { using (var pen = new Pen(UiTokens.Border)) e.Graphics.DrawLine(pen, 0, header.Height - 1, header.Width, header.Height - 1); };
-            var headerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = new Padding(0), Padding = new Padding(0), Tag = "UiFoundationShell" };
+            var headerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, Margin = new Padding(0), Padding = new Padding(0), Tag = "UiFoundationShell" };
             headerLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
             headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             var logo = new PictureBox
             {
@@ -317,7 +318,7 @@ namespace NetStuck
                 Margin = new Padding(UiTokens.SpaceMd, 0, 0, 0),
                 TabStop = false
             };
-            headerLayout.Controls.Add(logo, 0, 0); headerLayout.Controls.Add(identity, 1, 0); headerLayout.Controls.Add(version, 2, 0);
+            headerLayout.Controls.Add(logo, 0, 0); headerLayout.Controls.Add(identity, 1, 0); headerLayout.Controls.Add(BuildThemeSelector(), 2, 0); headerLayout.Controls.Add(version, 3, 0);
             header.Controls.Add(headerLayout);
 
             tabs.Dock = DockStyle.Fill;
@@ -554,7 +555,7 @@ namespace NetStuck
             traceOptions.Controls.AddRange(new Control[] { traceContinuous, traceResolveNames, traceUseCustomDns, traceDnsServer });
             controls.Controls.Add(traceOptions, 0, 1); controls.SetColumnSpan(traceOptions, 5);
 
-            var info = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, BackColor = Color.FromArgb(248, 250, 252), Padding = new Padding(8, 7, 8, 0) };
+            var info = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)), Padding = new Padding(8, 7, 8, 0) };
             traceCycleLabel = new Label { Text = "Cycle: 0", AutoSize = true, ForeColor = TextMuted };
             traceDestinationLabel = new Label { Text = "Destination: —", AutoSize = true, ForeColor = TextMuted, Margin = new Padding(25, 0, 0, 0) };
             traceStateLabel = new Label { Text = "Target: Waiting", AutoSize = true, ForeColor = Warning, Font = new Font("Segoe UI Semibold", 9), Margin = new Padding(25, 0, 0, 0) };
@@ -757,7 +758,13 @@ namespace NetStuck
                 Font = new Font("Segoe UI", 10),
                 BackColor = Surface,
                 Text =
-                    "NetStuck v.1.3.2 (Current)\r\n" +
+                    "NetStuck v.1.3.3 (Current)\r\n" +
+                    "Light and Dark themes\r\n\r\n" +
+                    "- Choose Theme: Light / Dark in the application header.\r\n" +
+                    "- Theme-aware text, status colors, grids, selection and dropdowns.\r\n" +
+                    "- Your theme preference is saved locally.\r\n" +
+                    "- Tests skipped at owner request; owner acceptance is pending.\r\n\r\n" +
+                    "NetStuck v.1.3.2\r\n" +
                     "Owner update trial from 1.3.1\r\n\r\n" +
                     "- Version-only update target; existing 1.3.1 features are retained.\r\n" +
                     "- Tests skipped at owner request; owner will exercise Update now.\r\n\r\n" +
@@ -1555,9 +1562,9 @@ namespace NetStuck
                 stopPingUiTimerAfterDrain = false;
                 pingUiTimer.Start();
                 pingStartButton.Text = "MONITORING";
-                pingStartButton.BackColor = Color.FromArgb(220, 252, 231); pingStartButton.ForeColor = Color.FromArgb(21, 128, 61);
+                pingStartButton.BackColor = UiPalette.Background(Color.FromArgb(220, 252, 231)); pingStartButton.ForeColor = UiPalette.Foreground(Color.FromArgb(21, 128, 61));
                 pingStartButton.FlatAppearance.BorderColor = Color.FromArgb(134, 239, 172);
-                pingStopButton.Text = "STOP NOW"; pingStopButton.BackColor = Danger; pingStopButton.ForeColor = Color.White;
+                pingStopButton.Text = "STOP NOW"; pingStopButton.BackColor = UiPalette.Background(Color.FromArgb(220, 38, 38)); pingStopButton.ForeColor = Color.White;
                 pingStopButton.FlatAppearance.BorderColor = Danger;
                 appStatus.Text = "Ping monitoring active — " + pingTable.Rows.Count + " targets";
             }
@@ -1568,7 +1575,7 @@ namespace NetStuck
                 DrainPingUpdates();
                 if (pingUiUpdates.IsEmpty) pingUiTimer.Stop();
                 if (pingPauseButton != null) { pingPauseButton.Text = "PAUSE"; pingPauseButton.BackColor = Surface; pingPauseButton.ForeColor = TextMain; pingPauseButton.FlatAppearance.BorderColor = Border; }
-                pingStartButton.Text = "START"; pingStartButton.BackColor = Accent; pingStartButton.ForeColor = Color.White; pingStartButton.FlatAppearance.BorderColor = Accent;
+                pingStartButton.Text = "START"; pingStartButton.BackColor = UiPalette.Background(Color.FromArgb(37, 99, 235)); pingStartButton.ForeColor = Color.White; pingStartButton.FlatAppearance.BorderColor = Accent;
                 pingStopButton.Text = "STOP"; pingStopButton.BackColor = Surface; pingStopButton.ForeColor = Danger;
                 pingStopButton.FlatAppearance.BorderColor = Color.FromArgb(252, 165, 165);
                 appStatus.Text = "Ready";
@@ -1583,13 +1590,13 @@ namespace NetStuck
             traceContinuous.Enabled = traceResolveNames.Enabled = traceUseCustomDns.Enabled = !running; traceDnsServer.Enabled = !running && traceUseCustomDns.Checked;
             if (running)
             {
-                traceStartButton.Text = "●  TRACE RUNNING"; traceStartButton.BackColor = Success; traceStartButton.ForeColor = Color.White;
-                traceStopButton.Text = "■  STOP NOW"; traceStopButton.BackColor = Danger; traceStopButton.ForeColor = Color.White; traceStopButton.FlatAppearance.BorderColor = Danger;
+                traceStartButton.Text = "●  TRACE RUNNING"; traceStartButton.BackColor = UiPalette.Background(Color.FromArgb(22, 163, 74)); traceStartButton.ForeColor = Color.White;
+                traceStopButton.Text = "■  STOP NOW"; traceStopButton.BackColor = UiPalette.Background(Color.FromArgb(220, 38, 38)); traceStopButton.ForeColor = Color.White; traceStopButton.FlatAppearance.BorderColor = Danger;
                 appStatus.Text = "Traceroute probes active";
             }
             else
             {
-                traceStartButton.Text = "▶  START TRACE"; traceStartButton.BackColor = Accent; traceStartButton.ForeColor = Color.White;
+                traceStartButton.Text = "▶  START TRACE"; traceStartButton.BackColor = UiPalette.Background(Color.FromArgb(37, 99, 235)); traceStartButton.ForeColor = Color.White;
                 traceStopButton.Text = "■  STOP"; traceStopButton.BackColor = Surface; traceStopButton.ForeColor = Danger; traceStopButton.FlatAppearance.BorderColor = Color.FromArgb(252, 165, 165);
                 appStatus.Text = "Ready";
             }
@@ -1599,7 +1606,7 @@ namespace NetStuck
         {
             if (pingCancellation == null) return;
             pingPaused = false;
-            pingStopButton.Enabled = false; pingStopButton.Text = "STOPPING"; pingStopButton.BackColor = Warning; pingStopButton.ForeColor = Color.White;
+            pingStopButton.Enabled = false; pingStopButton.Text = "STOPPING"; pingStopButton.BackColor = UiPalette.Background(Color.FromArgb(217, 119, 6)); pingStopButton.ForeColor = Color.White;
             pingStopButton.FlatAppearance.BorderColor = Warning;
             appStatus.Text = "Stopping ping workers…";
             pingCancellation.Cancel();
@@ -1608,7 +1615,7 @@ namespace NetStuck
         void RequestTraceStop(object sender, EventArgs e)
         {
             if (traceCancellation == null) return;
-            traceStopButton.Enabled = false; traceStopButton.Text = "Stopping…"; traceStopButton.BackColor = Warning; traceStopButton.ForeColor = Color.White;
+            traceStopButton.Enabled = false; traceStopButton.Text = "Stopping…"; traceStopButton.BackColor = UiPalette.Background(Color.FromArgb(217, 119, 6)); traceStopButton.ForeColor = Color.White;
             appStatus.Text = "Stopping traceroute probes…";
             var timer = new System.Windows.Forms.Timer { Interval = 200 };
             timer.Tick += delegate { timer.Stop(); timer.Dispose(); if (traceCancellation != null) traceCancellation.Cancel(); };
@@ -1768,7 +1775,7 @@ namespace NetStuck
                 bool success = IsSuccessfulPingStatus(status);
                 bool failed = IsFailedPingStatus(status);
                 e.CellStyle.ForeColor = success ? Success : failed ? Danger : Warning;
-                e.CellStyle.BackColor = success ? Color.FromArgb(240, 253, 244) : failed ? Color.FromArgb(254, 242, 242) : Color.FromArgb(255, 251, 235);
+                e.CellStyle.BackColor = UiPalette.Background(success ? Color.FromArgb(240, 253, 244) : failed ? Color.FromArgb(254, 242, 242) : Color.FromArgb(255, 251, 235));
             }
         }
 
@@ -1898,7 +1905,7 @@ namespace NetStuck
             var button = new Button
             {
                 Text = text, Height = 34, Width = width, FlatStyle = FlatStyle.Flat,
-                BackColor = primary ? Accent : Surface, ForeColor = primary ? Color.White : TextMain,
+                BackColor = primary ? UiPalette.Background(Color.FromArgb(37, 99, 235)) : Surface, ForeColor = primary ? Color.White : TextMain,
                 Font = new Font("Segoe UI Semibold", 9f), Cursor = Cursors.Hand, Margin = new Padding(4, 1, 4, 1),
                 TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(0), AutoEllipsis = true,
                 UseCompatibleTextRendering = false
@@ -1954,9 +1961,9 @@ namespace NetStuck
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None, AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None, ScrollBars = ScrollBars.Both,
                 EnableHeadersVisualStyles = false, ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText, ColumnHeadersHeight = 36, ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing
             };
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252); grid.ColumnHeadersDefaultCellStyle.ForeColor = TextMain; grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9f); grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(248, 250, 252);
+            grid.ColumnHeadersDefaultCellStyle.BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)); grid.ColumnHeadersDefaultCellStyle.ForeColor = TextMain; grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9f); grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(248, 250, 252);
             grid.DefaultCellStyle.BackColor = Surface; grid.DefaultCellStyle.ForeColor = TextMain; grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254); grid.DefaultCellStyle.SelectionForeColor = TextMain; grid.DefaultCellStyle.Padding = new Padding(4, 1, 4, 1);
-            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 251, 253); grid.RowTemplate.Height = 32;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = UiPalette.Background(Color.FromArgb(250, 251, 253)); grid.RowTemplate.Height = 32;
             grid.EditingControlShowing += MakeGridEditorSelectable;
             ConfigureFastGrid(grid);
             return grid;
@@ -1987,22 +1994,12 @@ namespace NetStuck
                 var cancel = ActionButton("Cancel", false, 100); cancel.Location = new Point(294, 88); cancel.DialogResult = DialogResult.Cancel;
                 dialog.Controls.AddRange(new Control[] { prompt, input, ok, cancel }); dialog.AcceptButton = ok; dialog.CancelButton = cancel;
                 dialog.Shown += delegate { input.Focus(); input.SelectAll(); };
+                ApplyTheme(dialog);
                 return dialog.ShowDialog(this) == DialogResult.OK ? input.Text.Trim() : null;
             }
         }
 
-        void ApplyTheme(Control root)
-        {
-            foreach (Control control in root.Controls)
-            {
-                if (control is TextBox)
-                {
-                    control.BackColor = ((TextBox)control).ReadOnly ? Color.FromArgb(248, 250, 252) : Color.White; control.ForeColor = TextMain;
-                }
-                else if (control is ComboBox || control is NumericUpDown) { control.BackColor = Color.White; control.ForeColor = TextMain; }
-                ApplyTheme(control);
-            }
-        }
+        void ApplyTheme(Control root) { BindTheme(root); }
 
         void OnFormClosing(object sender, FormClosingEventArgs e)
         {

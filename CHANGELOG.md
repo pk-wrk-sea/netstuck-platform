@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git tags and `v.MAJOR.MINOR.PATCH` in the legacy application UI.
 
+## v1.3.3 — Light and Dark themes, 2026-09-23
+
+- Added a Light / Dark selector in the application header with a locally persisted preference. Older state files default to Light.
+- Added theme-aware foreground/background palettes for text, semantic statuses, result grids, selection, input controls, owner-drawn dropdowns, tabs and application dialogs.
+- Preserve filled action-button contrast and redraw disabled action labels for the dark palette; keep the Collector terminal in its existing readable dark colors.
+- Theme switches recolor existing controls without rebuilding forms or rebinding result data. Native Windows file/message dialogs and system chrome retain Windows rendering.
+- Tests, runtime smoke, screenshots and CI are not run, continuing the owner's no-test instruction. This is a build-only release awaiting owner acceptance.
+
 ## v1.3.2 — Owner update trial, 2026-09-23
 
 - Provides a newer version for exercising Update now from the local 1.3.1 installation.

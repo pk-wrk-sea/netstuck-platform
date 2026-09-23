@@ -7,7 +7,7 @@ NetStuck is a desktop tool. Most data stays on the operator's Windows computer, 
 `%LOCALAPPDATA%\NetStuck` can contain:
 
 - Saved Ping profiles and targets
-- Window/menu/input state
+- Window/menu/input state and Light/Dark theme preference
 - Hop descriptions and Traceroute target history
 - DNS, MAC and WAN lookup inputs
 - Config Collector device lists, commands, usernames and output-folder path

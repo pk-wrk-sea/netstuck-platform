@@ -6,7 +6,8 @@ $script:NetStuckProductionSourcePaths = @(
     'src/NetStuck/NetStuck.Release1.cs',
     'src/NetStuck/NetStuck.V103.cs',
     'src/NetStuck/NetStuck.Maintenance.cs',
-    'src/NetStuck/NetStuck.Updates.cs'
+    'src/NetStuck/NetStuck.Updates.cs',
+    'src/NetStuck/NetStuck.Theme.cs'
 )
 
 $script:NetStuckFrameworkReferenceNames = @(

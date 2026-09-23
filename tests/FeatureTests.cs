@@ -58,12 +58,12 @@ static class FeatureTests
             Check("Config Collector remains and Log Sanitizer menu is removed", tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Config Collector")
                 && !tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Log Sanitizer"));
             FileVersionInfo runtimeVersion = FileVersionInfo.GetVersionInfo(typeof(MainForm).Assembly.Location);
-            Check("v.1.3.2 runtime and Updates menu exist", typeof(MainForm).Assembly.GetName().Version.ToString() == "1.3.2.0"
-                && runtimeVersion.FileVersion == "1.3.2.0"
-                && runtimeVersion.ProductVersion == "1.3.2.0"
-                && controls.OfType<Label>().Any(l => l.Name == "applicationVersion" && l.Text == "v.1.3.2")
+            Check("v.1.3.3 runtime and Updates menu exist", typeof(MainForm).Assembly.GetName().Version.ToString() == "1.3.3.0"
+                && runtimeVersion.FileVersion == "1.3.3.0"
+                && runtimeVersion.ProductVersion == "1.3.3.0"
+                && controls.OfType<Label>().Any(l => l.Name == "applicationVersion" && l.Text == "v.1.3.3")
                 && tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Updates")
-                && controls.OfType<TextBox>().Any(t => t.ReadOnly && t.Text.Contains("NetStuck v.1.3.2 (Current)") && t.Text.Contains("NetStuck v.1.2.3")));
+                && controls.OfType<TextBox>().Any(t => t.ReadOnly && t.Text.Contains("NetStuck v.1.3.3 (Current)") && t.Text.Contains("NetStuck v.1.2.3")));
             Check("WinMTR text removed", !controls.Any(c => c.Text.IndexOf("WinMTR", StringComparison.OrdinalIgnoreCase) >= 0));
             StatusStrip globalStatus = controls.OfType<StatusStrip>().First();
             Check("global status shows local and public IP", globalStatus.Items.Cast<ToolStripItem>().Any(i => i.Text.StartsWith("My Local IP:"))
@@ -420,7 +420,7 @@ static class FeatureTests
             Invoke(form, "SaveAppState");
             string savedState = File.ReadAllText(state);
             Check("collector passwords never persisted", !savedState.Contains("DO_NOT_SAVE_THIS") && !savedState.Contains("ALSO_SECRET") && !savedState.Contains("ENABLE_SECRET"));
-            Check("v.1.3.2 retains state schema 6", savedState.Contains("\"StateVersion\":6"));
+            Check("v.1.3.3 retains state schema 6", savedState.Contains("\"StateVersion\":6"));
 
             IDictionary providerEntries = (IDictionary)Get(form, "traceProviderEntriesV120");
             IDictionary dnsEntries = (IDictionary)Get(form, "traceDnsEntriesV120");

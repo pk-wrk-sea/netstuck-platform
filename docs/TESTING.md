@@ -16,7 +16,7 @@ After all cadence resources are closed and results are flushed, that harness exi
 | Stage | Coverage |
 | --- | --- |
 | `Test host compilation` | Explicit test/app input compilation with `/noconfig`, `/nostdlib+` and resolved framework references. |
-| `Development build` | Production eight-source allowlist, build provenance output and `NetStuck.exe` version. |
+| `Development build` | Production nine-source allowlist, build provenance output and `NetStuck.exe` version. |
 
 | Suite | Coverage |
 | --- | --- |
