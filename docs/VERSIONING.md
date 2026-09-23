@@ -1,12 +1,12 @@
 # Versioning
 
-NetStuck uses semantic versions for repository tags and releases. The current candidate target is:
+NetStuck uses semantic versions for repository tags and releases. The current update-trial target is:
 
-- Planned Git tag/release: `v1.3.0` (not created during candidate preparation)
-- Legacy UI display: `v.1.3.0`
-- Assembly/File version: `1.3.0.0`
+- Git tag/release: `v1.3.2`
+- Legacy UI display: `v.1.3.2`
+- Assembly/File version: `1.3.2.0`
 
-The last published stable baseline remains `v1.2.3` until release acceptance, tagging and publication are complete.
+v1.3.2 is an explicitly requested owner update-trial release. Tests and CI are skipped for this release only; normal release gates remain unchanged. It is published as normal Latest because the 1.3.1 updater ignores prereleases.
 
 When a version upgrade is explicitly requested, update all of these locations together:
 
@@ -18,5 +18,6 @@ When a version upgrade is explicitly requested, update all of these locations to
 6. Default version in `scripts/Package-NetStuck.ps1`
 7. CI artifact name in `.github/workflows/windows-ci.yml`
 8. `README.md`, `README-TH.md`, `CHANGELOG.md` and release reports
+9. `src/NetStuck/app.manifest`, updater User-Agent and `.github/workflows/release.yml` defaults
 
 Do not bump the version merely because repository documentation, CI or non-functional maintenance metadata changed. Record baseline maintenance in the changelog until a user requests a product release.

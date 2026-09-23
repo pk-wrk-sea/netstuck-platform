@@ -35,6 +35,9 @@ namespace NetStuck
         public string PingDns { get; set; }
         public bool PingCardsVisible { get; set; }
         public List<string> PingColumns { get; set; }
+        public List<string> TraceColumns1 { get; set; }
+        public List<string> TraceColumns2 { get; set; }
+        public bool? AutoCheckUpdates { get; set; }
         public string PingSourceIp { get; set; }
         public bool PingAdvanced { get; set; }
         public string PingProtocol { get; set; }
@@ -566,6 +569,10 @@ namespace NetStuck
         {
             List<CollectorDevice> devices = ParseCollectorDevices();
             if (devices.Count == 0) { MessageBox.Show(this, "Enter at least one device."); return; }
+            if (collectorPingBusy) return;
+            collectorPingBusy = true;
+            try
+            {
             collectorTable.Rows.Clear();
             collectorTerminal.Clear();
             foreach (CollectorDevice device in devices)
@@ -580,10 +587,13 @@ namespace NetStuck
                     }
                 }
                 catch (Exception ex) { detail = FriendlyError(ex); }
+                if (appClosing) return;
                 collectorTable.Rows.Add(device.Host, ok ? "Reachable" : "Unreachable", "ICMP", "", device.Description, "", ok ? latency + " ms" : detail);
                 AppendTerminal("[" + device.Host + "] " + (ok ? "Reachable " + latency + " ms" : "Unreachable: " + detail));
             }
             UpdateCollectorErrorExportStateV120();
+            }
+            finally { collectorPingBusy = false; }
         }
 
         async void StartCollector(object sender, EventArgs e)
@@ -1530,17 +1540,7 @@ namespace NetStuck
 
         void ConfigureEqualSplit(TabPage page, SplitContainer split, int panel1Min, int panel2Min)
         {
-            bool configured = false;
-            LayoutEventHandler handler = null;
-            handler = delegate
-            {
-                int width = split.ClientSize.Width;
-                if (configured || width < panel1Min + panel2Min + split.SplitterWidth) return;
-                split.Panel1MinSize = panel1Min; split.Panel2MinSize = panel2Min;
-                split.SplitterDistance = (width - split.SplitterWidth) / 2;
-                configured = true; page.Layout -= handler;
-            };
-            page.Layout += handler;
+            ConfigureResponsiveSplit(split, -1, panel1Min, panel2Min);
         }
 
         async Task SynchronizeClockAsync()
@@ -1589,7 +1589,7 @@ namespace NetStuck
         void UpdateClockDisplay()
         {
             DateTime utc = clockElapsed == null ? DateTime.UtcNow : clockBaseUtc.Add(clockElapsed.Elapsed);
-            clockStatus.Text = utc.ToLocalTime().ToString("yyyy-MM-dd  HH:mm:ss") + (clockNtp ? " ICT" : "");
+            clockStatus.Text = ClockText(utc, TimeZoneInfo.Local) + (clockNtp ? " (NTP)" : "");
         }
 
         void EnableCtrlWheelZoom(Control root)
@@ -1633,9 +1633,12 @@ namespace NetStuck
         {
             try
             {
-                if (!File.Exists(statePath)) return;
-                AppState s = new JavaScriptSerializer().Deserialize<AppState>(File.ReadAllText(statePath, Encoding.UTF8));
+                if (!File.Exists(statePath) && !File.Exists(statePath + ".bak")) return;
+                AppState s = AtomicJson.Read<AppState>(statePath);
                 if (s == null) return;
+                autoCheckUpdates.Checked = s.AutoCheckUpdates ?? true;
+                RestoreColumns(traceSessionsV103[0].Grid, s.TraceColumns1);
+                RestoreColumns(traceSessionsV103[1].Grid, s.TraceColumns2);
                 if (s.Width >= MinimumSize.Width && s.Height >= MinimumSize.Height) Size = new Size(s.Width, s.Height);
                 Rectangle screens = SystemInformation.VirtualScreen;
                 if (screens.Contains(new Point(s.Left + 40, s.Top + 40))) Location = new Point(s.Left, s.Top);
@@ -1720,6 +1723,9 @@ namespace NetStuck
                 var s = new AppState
                 {
                     StateVersion = 6,
+                    AutoCheckUpdates = autoCheckUpdates.Checked,
+                    TraceColumns1 = traceSessionsV103[0].Grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).Select(c => c.Name).ToList(),
+                    TraceColumns2 = traceSessionsV103[1].Grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).Select(c => c.Name).ToList(),
                     Width = bounds.Width, Height = bounds.Height, Left = bounds.Left, Top = bounds.Top, Maximized = WindowState == FormWindowState.Maximized,
                     SelectedTab = tabs.SelectedIndex, PingTargets = targetInput.Text, PingInterval = (int)pingInterval.Value, PingTimeout = (int)pingTimeout.Value,
                     PingCustomDns = pingUseCustomDns.Checked, PingDns = pingDnsServer.Text, PingCardsVisible = pingRoot.RowStyles[0].Height > 0,
@@ -1753,9 +1759,10 @@ namespace NetStuck
                     Zoom = zoomScale
                 };
                 Directory.CreateDirectory(Path.GetDirectoryName(statePath));
-                File.WriteAllText(statePath, new JavaScriptSerializer().Serialize(s), new UTF8Encoding(false));
+                AtomicJson.Write(statePath, s);
+                stateSaveSucceeded = true;
             }
-            catch { }
+            catch { stateSaveSucceeded = false; Log("WARNING", "State", "Could not save settings. Check folder permissions and disk space."); if (appClosing) MessageBox.Show(this, "Settings could not be saved. Your previous saved settings have been retained.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         }
     }
 }

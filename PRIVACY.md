@@ -30,6 +30,12 @@ Features may send queries to:
 
 DNS forward/reverse queries use the Windows-configured system resolver. SSH/Telnet/Ping/Traceroute traffic goes to targets entered by the operator.
 
+## Updates and recovery
+
+Update checks contact `api.github.com` for the public NetStuck repository; downloads use GitHub and its HTTPS release-asset CDN. GitHub sees the request source IP and a NetStuck version User-Agent. No targets, credentials, usernames, logs or collector captures are sent. Daily checks can be disabled on Updates. Last successful check and public release metadata are cached locally.
+
+Atomic state/cache saves retain a `.bak` beside the original; it has the same sensitivity as the original file. `%LOCALAPPDATA%\NetStuck\updates` contains downloaded application packages, copied updater executables, recovery records and old application-file backups. It does not copy operator state or collector output.
+
 ## Repository rule
 
 Do not copy runtime state, screenshots showing real network identity, lookup exports or collector output into issues, commits or releases. Sanitize diagnostic logs before sharing them with an AI system or third party.

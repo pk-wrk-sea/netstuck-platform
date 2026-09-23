@@ -2,15 +2,33 @@
 
 All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git tags and `v.MAJOR.MINOR.PATCH` in the legacy application UI.
 
-## v1.3.0 — Candidate (not released)
+## v1.3.2 — Owner update trial, 2026-09-23
+
+- Provides a newer version for exercising Update now from the local 1.3.1 installation.
+- Retains 1.3.1 behavior; updates version metadata and release notes only.
+- No regression, smoke, runtime or updater tests were run for 1.3.2, at the owner's explicit request. Build/package integrity checks are not test acceptance.
+- Published as a normal Latest release for compatibility with the 1.3.1 stable-only updater. This does not imply completed manual UI/DPI acceptance.
+
+## v1.3.1 — Local candidate (not published)
+
+- Added the selected NS circuit logo and a multi-resolution Windows icon.
+- Added column drag guidelines and independent, persisted Traceroute column visibility.
+- Recalculate splitter limits on resize; preserve accessible result canvases using workspace scrollbars on constrained displays; clamp restored windows to the current monitor.
+- Corrected clipped header logo and Traceroute input arrow bounds; declared system DPI awareness.
+- Added optional daily GitHub checks, Check for updates, last-check time, new-version indicator and Update now.
+- Update now verifies the stable release ZIP, checksum, exact file inventory, per-file manifest and executable version, then replaces the portable files after exit and restarts. Keeps a verified backup and durable recovery record.
+- Serialize atomic JSON writes with backup recovery; restore in-memory profiles after failed saves; bound MAC/WAN requests and cancel them at close; display the actual timezone offset.
+- Added 40 focused maintenance checks without removing the prior 292 checks. Current execution evidence is in the v1.3.1 preparation report.
+
+## v1.3.0 — Published 2026-08-28
 
 - Added shared UI tokens, action roles, accessibility helpers and semantic state presentation for the application shell, Calculators and Event Log pilots.
 - Added persistent input labels and clearer accessible control identity without changing the established WinForms interaction model.
 - Added deterministic UI capture, privacy, rollback and build/package provenance verification infrastructure.
 - Corrected Traceroute lifecycle ownership, UI-thread dispatch, stop/restart gating and stale completion handling.
 - Preserved two independent Traceroute sessions, fixed polling cadence, Config Collector authentication order and credential-free process arguments/state/logs.
-- Recorded physical-pointer and native-dropdown merge acceptance; 125%, 150% and 200% DPI, High Contrast and screen-reader release gates remain open.
-- Prepared a local candidate only; no `v1.3.0` tag or GitHub Release exists yet.
+- Recorded physical-pointer/native-dropdown and 125% DPI acceptance. Remaining manual gates were owner-waived for this release only; see the original acceptance report.
+- Published as GitHub Release `v1.3.0`; the original preparation and acceptance reports remain historical evidence.
 
 ## v1.2.3 — Baseline
 

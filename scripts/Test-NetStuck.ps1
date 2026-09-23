@@ -20,6 +20,7 @@ $requiredSuiteMinimums = [ordered]@{
     'Test runner infrastructure' = 10
     'NetOpsCoreTests.exe' = 16
     'FeatureTests.exe' = 93
+    'MaintenanceTests.exe' = 40
     'TracerouteLifecycleTests.exe' = 31
     'UiFoundationTests.exe' = 63
     'PerformanceTests.exe' = 10
@@ -505,7 +506,7 @@ try {
     Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot 'FakePlink.exe')") + $frameworkReferences + (Join-Path $testRoot 'FakePlink.cs'))
     Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot 'NetOpsCoreTests.exe')") + $frameworkReferences + (Join-Path $sourceRoot 'NetOpsCore.cs') + (Join-Path $testRoot 'NetOpsCoreTests.cs'))
     $uiTestReferences = $frameworkReferences + "/reference:$uiLibrary"
-    foreach ($name in @('FeatureTests', 'TracerouteLifecycleTests', 'UiFoundationTests', 'PerformanceTests', 'PollingCadenceTests', 'OvernightSoakTests')) {
+    foreach ($name in @('FeatureTests', 'MaintenanceTests', 'TracerouteLifecycleTests', 'UiFoundationTests', 'PerformanceTests', 'PollingCadenceTests', 'OvernightSoakTests')) {
         Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot ($name + '.exe'))") + $uiTestReferences + (Join-Path $testRoot ($name + '.cs')))
     }
     Add-StageResult -Name $currentStage -Status 'Passed' -NativeExitCode 0 -InfrastructureFailures 0 -Detail 'All production and test hosts compiled.'
@@ -527,6 +528,8 @@ try {
     Invoke-TestExecutable 'NetOpsCoreTests.exe'
     $currentStage = 'FeatureTests.exe'
     Invoke-TestExecutable 'FeatureTests.exe'
+    $currentStage = 'MaintenanceTests.exe'
+    Invoke-TestExecutable 'MaintenanceTests.exe'
     $currentStage = 'TracerouteLifecycleTests.exe'
     Invoke-TestExecutable 'TracerouteLifecycleTests.exe'
     $currentStage = 'UiFoundationTests.exe'

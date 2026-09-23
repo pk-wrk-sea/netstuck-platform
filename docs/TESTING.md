@@ -6,7 +6,7 @@
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10
 ```
 
-Run the command under both supported hosts (`powershell.exe` 5.1 and `pwsh.exe` 7.x). It compiles the app and every test harness into the ignored `artifacts` directory, then runs them from isolated state roots. The runner requires two stages and ten suites exactly once, preserves native stdout/stderr/exit evidence, enforces the authoritative per-suite minimum map, and writes a schema-3 JSON summary whose verdict and process exit come from the same reconciliation result.
+Run the command under both supported hosts (`powershell.exe` 5.1 and `pwsh.exe` 7.x). It compiles the app and every test harness into the ignored `artifacts` directory, then runs them from isolated state roots. The runner requires two stages and eleven suites exactly once, preserves native stdout/stderr/exit evidence, enforces the authoritative per-suite minimum map, and writes a schema-3 JSON summary whose verdict and process exit come from the same reconciliation result.
 It deliberately switches the test console to BOM-free UTF-8 so the Collector integration test reproduces GitHub runner input behavior.
 The isolated state override also suppresses live startup NTP/Public-IP calls; this prevents shared-runner network variance and teardown races from contaminating UI cadence measurements.
 After all cadence resources are closed and results are flushed, that harness exits explicitly to avoid a legacy CLR/native Ping finalizer race observed only during Windows Server 2025 process teardown.
@@ -16,13 +16,14 @@ After all cadence resources are closed and results are flushed, that harness exi
 | Stage | Coverage |
 | --- | --- |
 | `Test host compilation` | Explicit test/app input compilation with `/noconfig`, `/nostdlib+` and resolved framework references. |
-| `Development build` | Production six-source allowlist, build provenance output and `NetStuck.exe` version. |
+| `Development build` | Production eight-source allowlist, build provenance output and `NetStuck.exe` version. |
 
 | Suite | Coverage |
 | --- | --- |
 | `Test runner infrastructure` | Native success/failure, stderr, parsed FAIL, cleanup, mandatory inventory, per-suite floor negative and repository state-residue scan. |
 | `NetOpsCoreTests` | Target parsing, CIDR rules, MAC extraction, subnet calculation, units and CSV escaping. |
 | `FeatureTests` | UI/integration behavior, persistence, Ping/Trace/DNS, Collector authentication/transport/export, layout and caching. |
+| `MaintenanceTests` | Atomic persistence/recovery, stable release metadata, download cancellation, malicious ZIP rejection, file replacement/rollback/recovery, timezone, update actions, column selection and constrained workspaces. |
 | `TracerouteLifecycleTests` | Real MainForm route/event tables, UI-thread dispatch, zero/one/multiple delayed probes, fault during Stop, derived timeout failure, obsolete run, restart gating, page disposal, active close, exact task observation and fail-closed state cleanup. |
 | `UiFoundationTests` | Pilot token/state/action contracts, accessibility, semantic state, layout, interaction and privacy. |
 | `PerformanceTests` | Startup, `/24` load, UI dispatch, queue draining, dual Traceroute and memory. |
@@ -31,7 +32,7 @@ After all cadence resources are closed and results are flushed, that harness exi
 | `Capture-UiFoundations infrastructure` | Semantic/current-run evidence, pre/post-promotion rollback, forced rollback failure, exact screenshot inventory, PNG decoding/structure/order/CRC/truncation negatives and privacy. |
 | `Build provenance infrastructure` | Production allowlist drift, test-source exclusion, atomic actual/normalized argv, special-character vectors, binary serialization/order/content/display negatives, reference identity, binary drift, package-input drift, toolchain classification and checkout relocation. |
 
-The current authoritative unchanged-behavior corpus is `130/130`: NetOpsCore 16, Feature 93, Performance 10, PollingCadence 3 and OvernightSoak 8. The current complete runner inventory is `292` checks across ten suites: runner 10, NetOpsCore 16, Feature 93, Traceroute lifecycle 31, UI foundation 63, Performance 10, Polling cadence 3, Soak 8, capture infrastructure 39 and build provenance 19. These values are the current floors in the runner; more checks remain valid. Historical `128`, `179`, `207`, `217` and `247` totals remain historical evidence and are not rewritten.
+The current authoritative unchanged-behavior corpus is `130/130`: NetOpsCore 16, Feature 93, Performance 10, PollingCadence 3 and OvernightSoak 8. The current complete runner inventory is `332` checks across eleven suites: runner 10, NetOpsCore 16, Feature 93, Maintenance 40, Traceroute lifecycle 31, UI foundation 63, Performance 10, Polling cadence 3, Soak 8, capture infrastructure 39 and build provenance 19. These values are the current floors in the runner; more checks remain valid. Historical `128`, `179`, `207`, `217` and `247` totals remain historical evidence and are not rewritten.
 
 Run the deterministic Traceroute lifecycle stress after lifecycle changes; every cycle owns a form, probe gate, tables, task registry and temporary state root:
 

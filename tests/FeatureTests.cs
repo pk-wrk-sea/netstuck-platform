@@ -29,10 +29,16 @@ static class FeatureTests
     {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        string state = Path.Combine(Environment.CurrentDirectory, "feature-state-test.json");
-        if (File.Exists(state)) File.Delete(state);
+        string ownedRoot = Path.Combine(Path.GetTempPath(), "NetStuck-feature-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(ownedRoot);
+        string previousRoot = Environment.GetEnvironmentVariable("NETSTUCK_TEST_ROOT");
+        string previousState = Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH");
+        Environment.SetEnvironmentVariable("NETSTUCK_TEST_ROOT", ownedRoot);
+        string state = Path.Combine(ownedRoot, "state.json");
         Environment.SetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH", state);
         var startupWatch = Stopwatch.StartNew();
+        try
+        {
         using (var form = new MainForm())
         {
             Set(form, "statePath", state);
@@ -52,12 +58,12 @@ static class FeatureTests
             Check("Config Collector remains and Log Sanitizer menu is removed", tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Config Collector")
                 && !tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Log Sanitizer"));
             FileVersionInfo runtimeVersion = FileVersionInfo.GetVersionInfo(typeof(MainForm).Assembly.Location);
-            Check("v.1.3.0 runtime and Updates menu exist", typeof(MainForm).Assembly.GetName().Version.ToString() == "1.3.0.0"
-                && runtimeVersion.FileVersion == "1.3.0.0"
-                && runtimeVersion.ProductVersion == "1.3.0.0"
-                && controls.OfType<Label>().Any(l => l.Name == "applicationVersion" && l.Text == "v.1.3.0")
+            Check("v.1.3.2 runtime and Updates menu exist", typeof(MainForm).Assembly.GetName().Version.ToString() == "1.3.2.0"
+                && runtimeVersion.FileVersion == "1.3.2.0"
+                && runtimeVersion.ProductVersion == "1.3.2.0"
+                && controls.OfType<Label>().Any(l => l.Name == "applicationVersion" && l.Text == "v.1.3.2")
                 && tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Updates")
-                && controls.OfType<TextBox>().Any(t => t.ReadOnly && t.Text.Contains("NetStuck v.1.3.0 (Current)") && t.Text.Contains("NetStuck v.1.2.3")));
+                && controls.OfType<TextBox>().Any(t => t.ReadOnly && t.Text.Contains("NetStuck v.1.3.2 (Current)") && t.Text.Contains("NetStuck v.1.2.3")));
             Check("WinMTR text removed", !controls.Any(c => c.Text.IndexOf("WinMTR", StringComparison.OrdinalIgnoreCase) >= 0));
             StatusStrip globalStatus = controls.OfType<StatusStrip>().First();
             Check("global status shows local and public IP", globalStatus.Items.Cast<ToolStripItem>().Any(i => i.Text.StartsWith("My Local IP:"))
@@ -86,13 +92,17 @@ static class FeatureTests
             var continuousHistory = (BindingSource)Get(form, "pingHistorySource");
             Check("history starts hidden until row click", continuousHistory.Count == 0);
             ((Button)Get(form, "pingStartButton")).PerformClick(); Pump(1300);
+            // This assertion concerns the protocol label, not an arbitrary startup delay.
+            // Cadence responsiveness remains independently measured in PollingCadenceTests.
+            var initialReply = Stopwatch.StartNew();
+            while (initialReply.ElapsedMilliseconds < 5000 && Convert.ToString(((DataTable)Get(form, "pingTable")).Rows[0]["Status"]) != "ICMP OK") Pump(50);
             Button pingPause = (Button)Get(form, "pingPauseButton");
             Button pingStart = (Button)Get(form, "pingStartButton");
             Button pingStop = (Button)Get(form, "pingStopButton");
             Check("Live Ping action buttons have equal stable widths", pingStart.Width == pingPause.Width && pingPause.Width == pingStop.Width);
             Check("all Live Ping buttons match START width", Flat(tabs.SelectedTab).OfType<Button>().All(b => b.Width == pingStart.Width));
             Check("Live Ping running button states are explicit", pingStart.Text == "MONITORING" && pingPause.Text == "PAUSE" && pingStop.Text == "STOP NOW");
-            Check("ICMP success status is protocol specific", Convert.ToString(((DataTable)Get(form, "pingTable")).Rows[0]["Status"]) == "ICMP OK");
+            Check("ICMP success status is protocol specific (" + Convert.ToString(((DataTable)Get(form, "pingTable")).Rows[0]["Status"]) + ")", Convert.ToString(((DataTable)Get(form, "pingTable")).Rows[0]["Status"]) == "ICMP OK");
             pingPause.PerformClick(); Pump(350);
             long pausedSamples = ((DataTable)Get(form, "pingTable")).Rows.Cast<DataRow>().Sum(r => Convert.ToInt64(r["Sent"]));
             Pump(350);
@@ -261,6 +271,7 @@ static class FeatureTests
             }
             Pump(100);
             traceGrid.CurrentCell = traceGrid.Rows[0].Cells["Address"];
+            Console.WriteLine("EVIDENCE trace geometry: form=" + form.Size + "; grid=" + traceGrid.Size + "; header=" + traceGrid.ColumnHeadersHeight + "; visible=" + traceGrid.Visible);
             traceGrid.FirstDisplayedScrollingRowIndex = 10;
             traceGrid.HorizontalScrollingOffset = 80;
             object traceGridPosition = Invoke(form, "CaptureTraceGridPositionV110", traceGrid);
@@ -409,7 +420,7 @@ static class FeatureTests
             Invoke(form, "SaveAppState");
             string savedState = File.ReadAllText(state);
             Check("collector passwords never persisted", !savedState.Contains("DO_NOT_SAVE_THIS") && !savedState.Contains("ALSO_SECRET") && !savedState.Contains("ENABLE_SECRET"));
-            Check("v.1.3.0 retains state schema 6", savedState.Contains("\"StateVersion\":6"));
+            Check("v.1.3.2 retains state schema 6", savedState.Contains("\"StateVersion\":6"));
 
             IDictionary providerEntries = (IDictionary)Get(form, "traceProviderEntriesV120");
             IDictionary dnsEntries = (IDictionary)Get(form, "traceDnsEntriesV120");
@@ -435,10 +446,13 @@ static class FeatureTests
             Check("NTP first with local fallback", timeSource.Text.Contains("NTP") || timeSource.Text.Contains("Local fallback") || timeSource.Text.Contains("syncing"));
             form.Close();
         }
-        if (File.Exists(state)) File.Delete(state);
-        string traceCache = Path.Combine(Path.GetDirectoryName(state), "trace-lookups.json");
-        if (File.Exists(traceCache)) File.Delete(traceCache);
-        Environment.SetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH", null);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETSTUCK_TEST_ROOT", previousRoot);
+            Environment.SetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH", previousState);
+            Directory.Delete(ownedRoot, true);
+        }
         Console.WriteLine("Failures: " + failures);
         return failures == 0 ? 0 : 1;
     }

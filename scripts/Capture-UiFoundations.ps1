@@ -911,30 +911,16 @@ if (-not (Test-Path -LiteralPath $compiler)) {
 }
 New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
 
-$sources = @(
-    'NetOpsCore.cs',
-    'NetStuck.UiFoundation.cs',
-    'NetStuck.cs',
-    'NetStuck.Features.cs',
-    'NetStuck.Release1.cs',
-    'NetStuck.V103.cs'
-) | ForEach-Object { Join-Path $sourceRoot $_ }
-$references = @(
-    'System.dll',
-    'System.Core.dll',
-    'System.Data.dll',
-    'System.Data.DataSetExtensions.dll',
-    'System.Drawing.dll',
-    'System.Windows.Forms.dll',
-    'System.Web.Extensions.dll'
-) | ForEach-Object { "/reference:$_" }
+. (Join-Path $PSScriptRoot 'NetStuck.BuildProvenance.ps1')
+$sources = @(Get-NetStuckProductionSourcePaths | ForEach-Object { Join-Path $repoRoot $_ })
+$references = @(Get-NetStuckFrameworkReferenceInventory -CompilerPath $compiler | ForEach-Object { '/reference:' + $_.FullPath })
 
 $uiLibrary = Join-Path $artifactRoot 'NetStuck.UI.dll'
 $captureExecutable = Join-Path $artifactRoot 'UiFoundationSnapshot.exe'
-$libraryArguments = @('/nologo', '/target:library', '/optimize+', "/out:$uiLibrary") + $references + $sources
+$libraryArguments = @('/nologo', '/noconfig', '/nostdlib+', '/target:library', '/optimize+', "/out:$uiLibrary") + $references + $sources
 $libraryCompile = Invoke-NativeProcess -FilePath $compiler -ArgumentList $libraryArguments
 Assert-NativeProcessSucceeded -Result $libraryCompile -Stage 'UI capture library compilation'
-$captureArguments = @('/nologo', '/target:exe', '/optimize+', "/out:$captureExecutable") + $references + "/reference:$uiLibrary" + (Join-Path $testRoot 'UiFoundationSnapshot.cs')
+$captureArguments = @('/nologo', '/noconfig', '/nostdlib+', '/target:exe', '/optimize+', "/out:$captureExecutable") + $references + "/reference:$uiLibrary" + (Join-Path $testRoot 'UiFoundationSnapshot.cs')
 $hostCompile = Invoke-NativeProcess -FilePath $compiler -ArgumentList $captureArguments
 Assert-NativeProcessSucceeded -Result $hostCompile -Stage 'UI capture host compilation'
 

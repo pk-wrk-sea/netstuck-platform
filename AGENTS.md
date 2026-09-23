@@ -4,7 +4,7 @@ These instructions apply to the entire repository.
 
 ## Baseline and scope
 
-- The maintained baseline is NetStuck v1.2.3 on Windows/.NET Framework 4.x.
+- The published baseline is NetStuck v1.3.0; v1.3.2 is the owner-requested update-trial version on Windows/.NET Framework 4.x.
 - Do not change the application version unless the user explicitly requests a version upgrade.
 - Preserve the current WinForms interaction model and portable-folder distribution.
 - Treat runtime state, collector captures, exported logs, usernames, IP lists and hop descriptions as sensitive operator data. Never add them to Git.
@@ -28,7 +28,7 @@ These instructions apply to the entire repository.
 
 ## Implementation boundaries
 
-- Active code is a `partial MainForm` across `src/NetStuck/NetStuck.cs`, `NetStuck.V103.cs`, `NetStuck.Release1.cs` and `NetStuck.Features.cs`.
+- Active code is a `partial MainForm` across `src/NetStuck/NetStuck.cs`, `NetStuck.V103.cs`, `NetStuck.Release1.cs`, `NetStuck.Features.cs`, `NetStuck.Maintenance.cs` and `NetStuck.Updates.cs`.
 - Tests use reflection against private member names. Rename fields/methods only when tests and persistence compatibility are addressed together.
 - Do not add secrets or credentials to command lines, exception text, diagnostics, state files or fixtures.
 - Do not commit executables or DLLs. PuTTY Plink belongs in a release ZIP with its license and verified hash.

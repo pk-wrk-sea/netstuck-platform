@@ -23,8 +23,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("NetStuck")]
 [assembly: AssemblyDescription("Network reachability and diagnostics")]
 [assembly: AssemblyCompany("NetStuck Project")]
-[assembly: AssemblyVersion("1.3.0.0")]
-[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.3.2.0")]
+[assembly: AssemblyFileVersion("1.3.2.0")]
 
 namespace NetStuck
 {
@@ -80,7 +80,7 @@ namespace NetStuck
     public sealed partial class MainForm : Form
     {
         const string AppName = "NetStuck";
-        const string AppVersion = "v.1.3.0";
+        const string AppVersion = "v.1.3.2";
         const int MaxExpandedTargets = 1024;
 
         readonly Color Canvas = Color.FromArgb(245, 247, 250);
@@ -249,6 +249,7 @@ namespace NetStuck
             ApplyTheme(this);
             LoadAppState();
             EnableCtrlWheelZoom(this);
+            InitializeResponsiveLayout();
             ResumeLayout(true);
             FormClosing += OnFormClosing;
             Shown += async delegate
@@ -257,7 +258,8 @@ namespace NetStuck
                 // not leave real NTP/HTTP work running after their form closes.
                 if (!String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH"))
                     || !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NETSTUCK_TEST_ROOT"))) return;
-                await Task.WhenAll(SynchronizeClockAsync(), RefreshNetworkIdentityAsync());
+                await Task.WhenAll(SynchronizeClockAsync(), RefreshNetworkIdentityAsync(),
+                    autoCheckUpdates.Checked && DateTime.UtcNow - lastCheckedUtc >= TimeSpan.FromHours(24) ? CheckForUpdatesAsync() : Task.FromResult(0));
             };
             Log("INFO", "Application", "Application started — version " + AppVersion);
         }
@@ -277,6 +279,7 @@ namespace NetStuck
             };
             header.Paint += delegate(object sender, PaintEventArgs e) { using (var pen = new Pen(UiTokens.Border)) e.Graphics.DrawLine(pen, 0, header.Height - 1, header.Width, header.Height - 1); };
             var headerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = new Padding(0), Padding = new Padding(0), Tag = "UiFoundationShell" };
+            headerLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48));
             headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -754,7 +757,19 @@ namespace NetStuck
                 Font = new Font("Segoe UI", 10),
                 BackColor = Surface,
                 Text =
-                    "NetStuck v.1.3.0 (Current)\r\n" +
+                    "NetStuck v.1.3.2 (Current)\r\n" +
+                    "Owner update trial from 1.3.1\r\n\r\n" +
+                    "- Version-only update target; existing 1.3.1 features are retained.\r\n" +
+                    "- Tests skipped at owner request; owner will exercise Update now.\r\n\r\n" +
+                    "NetStuck v.1.3.1\r\n" +
+                    "Portable updates, NS identity and small-screen reliability\r\n\r\n" +
+                    "- Check for updates and download verified releases from GitHub.\r\n" +
+                    "- Replace the portable package after exit, keep a backup and restart.\r\n" +
+                    "- Added column drag guides and independent Traceroute column selection.\r\n" +
+                    "- Keep results accessible with responsive splits and scrollable workspaces.\r\n" +
+                    "- Protect saved data with atomic writes and backup recovery.\r\n" +
+                    "- Bound external lookups and display the actual local timezone.\r\n\r\n" +
+                    "NetStuck v.1.3.0\r\n" +
                     "UI foundations and Traceroute lifecycle reliability\r\n\r\n" +
                     "- Added shared UI foundations for the shell, Calculators and Event Log pilots.\r\n" +
                     "- Improved accessible control identity, interaction roles and deterministic capture evidence.\r\n" +
@@ -829,6 +844,7 @@ namespace NetStuck
                     "• Persistent application state, NTP-first clock, zoom and exportable logs."
             };
             card.Controls.Add(notes);
+            BuildUpdateControls(card);
             card.Controls.Add(SectionHeader("Updates", "Short release notes for each NetStuck version"));
             page.Controls.Add(card);
         }
@@ -1247,6 +1263,7 @@ namespace NetStuck
                         }
 
                         MacLookupResult result = await LookupMacVendorApiAsync(oui);
+                        if (appClosing) return;
                         row["Vendor"] = result.Vendor;
                         row["Status"] = result.Status;
                         if (result.Cacheable)
@@ -1257,6 +1274,7 @@ namespace NetStuck
                     }
                     catch (Exception ex)
                     {
+                        if (appClosing) return;
                         row["Vendor"] = FriendlyError(ex);
                         row["Status"] = "ERROR";
                     }
@@ -1265,9 +1283,9 @@ namespace NetStuck
             finally
             {
                 if (cacheChanged) SaveMacVendorCache();
-                macLookupButton.Enabled = true;
+                if (!appClosing) { macLookupButton.Enabled = true;
                 SetTabActivity("MAC / WAN Lookup", false);
-                appStatus.Text = "Ready";
+                appStatus.Text = "Ready"; }
             }
             Log("INFO", "MAC", "Processed " + macs.Count + " MAC address(es)");
         }
@@ -1287,24 +1305,26 @@ namespace NetStuck
                 {
                     foreach (string ip in ips)
                     {
+                        if (appClosing) return;
                         try
                         {
-                            string json = await web.DownloadStringTaskAsync("https://ipwho.is/" + ip);
+                            string json = await DownloadLookupAsync(web, "https://ipwho.is/" + ip);
+                            if (appClosing) return;
                             var data = serializer.Deserialize<Dictionary<string, object>>(json);
                             bool ok = data.ContainsKey("success") && Convert.ToBoolean(data["success"]);
                             var connection = data.ContainsKey("connection") ? data["connection"] as Dictionary<string, object> : null;
                             var timezone = data.ContainsKey("timezone") ? data["timezone"] as Dictionary<string, object> : null;
                             wanTable.Rows.Add(ip, ok ? "OK" : "ERROR", Value(data, "country"), Value(data, "region"), Value(connection, "isp"), Value(connection, "org"), Value(connection, "asn"), Value(timezone, "id"), ok ? "Public IP details" : Value(data, "message"));
                         }
-                        catch (Exception ex) { wanTable.Rows.Add(ip, "ERROR", "", "", "", "", "", "", FriendlyError(ex)); }
+                        catch (Exception ex) { if (appClosing) return; wanTable.Rows.Add(ip, "ERROR", "", "", "", "", "", "", FriendlyError(ex)); }
                     }
                 }
             }
             finally
             {
-                wanLookupButton.Enabled = true;
+                if (!appClosing) { wanLookupButton.Enabled = true;
                 SetTabActivity("MAC / WAN Lookup", false);
-                appStatus.Text = "Ready";
+                appStatus.Text = "Ready"; }
             }
             Log("INFO", "WAN", "Looked up " + ips.Count + " IP address(es)");
         }
@@ -1314,7 +1334,7 @@ namespace NetStuck
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 int throttleDelay = 130 - (int)(DateTime.UtcNow - lastMacApiRequestUtc).TotalMilliseconds;
-                if (throttleDelay > 0) await Task.Delay(throttleDelay);
+                if (throttleDelay > 0) await Task.Delay(throttleDelay, maintenanceCancellation.Token);
                 lastMacApiRequestUtc = DateTime.UtcNow;
                 int retryDelay = -1;
 
@@ -1322,7 +1342,7 @@ namespace NetStuck
                 {
                     try
                     {
-                        string json = await web.DownloadStringTaskAsync("https://api.maclookup.app/v2/macs/" + Uri.EscapeDataString(oui));
+                        string json = await DownloadLookupAsync(web, "https://api.maclookup.app/v2/macs/" + Uri.EscapeDataString(oui));
                         var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
                         bool hasFound = data != null && data.ContainsKey("found");
                         bool success = data != null && data.ContainsKey("success") && Convert.ToBoolean(data["success"], CultureInfo.InvariantCulture);
@@ -1361,7 +1381,7 @@ namespace NetStuck
                         }
                     }
                 }
-                if (retryDelay >= 0) await Task.Delay(retryDelay);
+                if (retryDelay >= 0) await Task.Delay(retryDelay, maintenanceCancellation.Token);
             }
             return new MacLookupResult { Vendor = "API rate limit reached — try again shortly", Status = "RATE LIMITED" };
         }
@@ -1382,8 +1402,8 @@ namespace NetStuck
         {
             try
             {
-                if (!File.Exists(macCachePath)) return;
-                var saved = new JavaScriptSerializer().Deserialize<Dictionary<string, string>>(File.ReadAllText(macCachePath, Encoding.UTF8));
+                if (!File.Exists(macCachePath) && !File.Exists(macCachePath + ".bak")) return;
+                var saved = AtomicJson.Read<Dictionary<string, string>>(macCachePath);
                 if (saved == null) return;
                 foreach (KeyValuePair<string, string> pair in saved)
                     if (Regex.IsMatch(pair.Key ?? "", "^[0-9A-Fa-f]{6}$")) macVendorCache[pair.Key.ToUpperInvariant()] = pair.Value ?? "";
@@ -1396,7 +1416,7 @@ namespace NetStuck
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(macCachePath));
-                File.WriteAllText(macCachePath, new JavaScriptSerializer().Serialize(macVendorCache), new UTF8Encoding(false));
+                AtomicJson.Write(macCachePath, macVendorCache);
             }
             catch { }
         }
@@ -1646,9 +1666,9 @@ namespace NetStuck
             savedProfiles.Clear();
             try
             {
-                if (File.Exists(profilePath))
+                if (File.Exists(profilePath) || File.Exists(profilePath + ".bak"))
                 {
-                    ProfileCollection collection = new JavaScriptSerializer().Deserialize<ProfileCollection>(File.ReadAllText(profilePath));
+                    ProfileCollection collection = AtomicJson.Read<ProfileCollection>(profilePath);
                     if (collection != null && collection.Profiles != null) savedProfiles.AddRange(collection.Profiles.Where(p => p != null && !String.IsNullOrWhiteSpace(p.Name)));
                 }
             }
@@ -1660,7 +1680,7 @@ namespace NetStuck
         {
             string directory = Path.GetDirectoryName(profilePath);
             Directory.CreateDirectory(directory);
-            File.WriteAllText(profilePath, new JavaScriptSerializer().Serialize(new ProfileCollection { Profiles = savedProfiles }), new UTF8Encoding(false));
+            AtomicJson.Write(profilePath, new ProfileCollection { Profiles = savedProfiles });
         }
 
         void RefreshProfiles()
@@ -1686,10 +1706,11 @@ namespace NetStuck
             if (String.IsNullOrWhiteSpace(name)) return;
             SavedProfile existing = savedProfiles.FirstOrDefault(p => String.Equals(p.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
             if (existing != null && MessageBox.Show(this, "Replace saved list \"" + existing.Name + "\"?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            string before = new JavaScriptSerializer().Serialize(savedProfiles);
             if (existing == null) { existing = new SavedProfile(); savedProfiles.Add(existing); }
             existing.Name = name.Trim(); existing.Targets = targetInput.Text; existing.IntervalMs = (int)pingInterval.Value; existing.TimeoutMs = (int)pingTimeout.Value; existing.UseCustomDns = pingUseCustomDns.Checked; existing.CustomDns = pingDnsServer.Text;
             try { SaveProfiles(); RefreshProfiles(); profileCombo.SelectedItem = existing.Name; Log("ACTION", "Profiles", "Saved list: " + existing.Name); }
-            catch (Exception ex) { MessageBox.Show(this, "Unable to save list.\r\n\r\n" + FriendlyError(ex), AppName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { RestoreProfilesAfterFailure(before); MessageBox.Show(this, "Unable to save list.\r\n\r\n" + FriendlyError(ex), AppName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }
 
         void LoadSelectedProfile(object sender, EventArgs e)
@@ -1707,10 +1728,14 @@ namespace NetStuck
             if (pingCancellation != null || profileCombo.SelectedItem == null) return;
             string name = profileCombo.SelectedItem.ToString();
             if (MessageBox.Show(this, "Delete saved list \"" + name + "\"?", AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            string before = new JavaScriptSerializer().Serialize(savedProfiles);
             savedProfiles.RemoveAll(p => String.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
             try { SaveProfiles(); RefreshProfiles(); Log("ACTION", "Profiles", "Deleted list: " + name); }
-            catch (Exception ex) { MessageBox.Show(this, FriendlyError(ex), AppName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { RestoreProfilesAfterFailure(before); MessageBox.Show(this, FriendlyError(ex), AppName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }
+
+        void RestoreProfilesAfterFailure(string before)
+        { savedProfiles.Clear(); savedProfiles.AddRange(new JavaScriptSerializer().Deserialize<List<SavedProfile>>(before)); RefreshProfiles(); }
 
         void Log(string level, string source, string message)
         {
@@ -1921,7 +1946,7 @@ namespace NetStuck
 
         DataGridView DataGrid()
         {
-            var grid = new DataGridView
+            var grid = new GuidedGrid
             {
                 Dock = DockStyle.Fill, BackgroundColor = Surface, BorderStyle = BorderStyle.FixedSingle, GridColor = Border,
                 AllowUserToAddRows = false, AllowUserToDeleteRows = false, AllowUserToOrderColumns = true, AllowUserToResizeColumns = true, AllowUserToResizeRows = false,
@@ -1944,47 +1969,12 @@ namespace NetStuck
 
         void ConfigureSplit(TabPage page, SplitContainer split, int desired, int panel1Min, int panel2Min)
         {
-            bool fullyConfigured = false;
-            LayoutEventHandler handler = null;
-            handler = delegate
-            {
-                int available = split.ClientSize.Width;
-                if (fullyConfigured || available <= split.SplitterWidth) return;
-
-                int usable = available - split.SplitterWidth;
-                int effectiveLeftMin = Math.Min(panel1Min, usable);
-                int effectiveRightMin = Math.Min(panel2Min, Math.Max(0, usable - effectiveLeftMin));
-                int maximumDistance = Math.Max(0, usable - effectiveRightMin);
-                int distance = Math.Max(effectiveLeftMin, Math.Min(desired, maximumDistance));
-
-                // During startup a hidden tab or a constrained desktop can be
-                // narrower than both requested panes. Keep the input pane usable
-                // and retry on a later layout instead of leaving the default 25% split.
-                split.Panel1MinSize = 0;
-                split.Panel2MinSize = 0;
-                split.SplitterDistance = Math.Max(0, Math.Min(usable, distance));
-                split.Panel1MinSize = Math.Min(panel1Min, split.SplitterDistance);
-                split.Panel2MinSize = Math.Min(panel2Min, Math.Max(0, usable - split.SplitterDistance));
-
-                fullyConfigured = available >= panel1Min + panel2Min + split.SplitterWidth;
-                if (fullyConfigured) page.Layout -= handler;
-            };
-            page.Layout += handler;
+            ConfigureResponsiveSplit(split, desired, panel1Min, panel2Min);
         }
 
         void ConfigureHorizontalSplit(Control host, SplitContainer split, int desired, int panel1Min, int panel2Min)
         {
-            bool configured = false;
-            LayoutEventHandler handler = null;
-            handler = delegate
-            {
-                if (configured || split.ClientSize.Height < panel1Min + panel2Min + split.SplitterWidth) return;
-                int distance = Math.Min(desired, split.ClientSize.Height - panel2Min - split.SplitterWidth);
-                split.SplitterDistance = Math.Max(panel1Min, distance);
-                split.Panel1MinSize = panel1Min; split.Panel2MinSize = panel2Min;
-                configured = true; host.Layout -= handler;
-            };
-            host.Layout += handler;
+            ConfigureResponsiveSplit(split, desired, panel1Min, panel2Min);
         }
 
         string PromptForName(string title, string label, string initial)
@@ -2017,6 +2007,7 @@ namespace NetStuck
         void OnFormClosing(object sender, FormClosingEventArgs e)
         {
             appClosing = true;
+            maintenanceCancellation.Cancel();
             SaveAppState();
             if (pingCancellation != null) pingCancellation.Cancel();
             if (traceCancellation != null) traceCancellation.Cancel();
@@ -2070,11 +2061,13 @@ namespace NetStuck
     static class Program
     {
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            if (args.Length == 1 && (args[0] == "--apply-update" || args[0] == "--recover-update"))
+            { Environment.ExitCode = UpdateEngine.ApplyJob(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "job.json"), args[0] == "--recover-update"); return; }
             Application.Run(new MainForm());
         }
     }

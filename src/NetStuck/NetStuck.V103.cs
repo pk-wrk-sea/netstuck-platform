@@ -178,8 +178,8 @@ namespace NetStuck
             traceLookupCachePathV120 = Path.Combine(directory, "trace-lookups.json");
             try
             {
-                if (!File.Exists(traceLookupCachePathV120)) return;
-                TraceLookupCacheV120 saved = new JavaScriptSerializer().Deserialize<TraceLookupCacheV120>(File.ReadAllText(traceLookupCachePathV120, Encoding.UTF8));
+                if (!File.Exists(traceLookupCachePathV120) && !File.Exists(traceLookupCachePathV120 + ".bak")) return;
+                TraceLookupCacheV120 saved = AtomicJson.Read<TraceLookupCacheV120>(traceLookupCachePathV120);
                 if (saved == null) return;
                 if (saved.Providers != null)
                     foreach (KeyValuePair<string, TraceLookupCacheItemV120> item in saved.Providers) traceProviderEntriesV120[item.Key] = item.Value;
@@ -226,12 +226,9 @@ namespace NetStuck
                         Dns = traceDnsEntriesV120.OrderByDescending(item => item.Value == null ? DateTime.MinValue : item.Value.RetrievedUtc)
                             .Take(1000).ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase)
                     };
+                    Directory.CreateDirectory(Path.GetDirectoryName(traceLookupCachePathV120));
+                    AtomicJson.Write(traceLookupCachePathV120, snapshot);
                 }
-                Directory.CreateDirectory(Path.GetDirectoryName(traceLookupCachePathV120));
-                string temporary = traceLookupCachePathV120 + ".tmp";
-                File.WriteAllText(temporary, new JavaScriptSerializer().Serialize(snapshot), new UTF8Encoding(false));
-                if (File.Exists(traceLookupCachePathV120)) File.Delete(traceLookupCachePathV120);
-                File.Move(temporary, traceLookupCachePathV120);
             }
             catch { }
         }
@@ -502,7 +499,10 @@ namespace NetStuck
             AddGridColumn(session.Grid, "Worst", "WorstMs", 72); AddGridColumn(session.Grid, "Jitter", "JitterMs", 72); AddGridColumn(session.Grid, "Sent", "Sent", 58); AddGridColumn(session.Grid, "Received", "Received", 68);
             AddGridColumn(session.Grid, "Loss", "LossPct", 67); AddGridColumn(session.Grid, "Route changes", "RouteChanges", 98); AddGridColumn(session.Grid, "Updated", "Updated", 82);
             session.Grid.DataSource = session.Source; session.Grid.CellFormatting += FormatTraceCell; session.Grid.KeyDown += GridCopyShortcut;
-            resultCard.Controls.Add(session.Grid); resultCard.Controls.Add(info); resultCard.Controls.Add(controls);
+            var columnButton = ActionButton("Columns...", false, 105); columnButton.Name = "traceColumns" + number;
+            columnButton.Click += delegate { ShowColumnChooser(session.Grid, "Traceroute columns - Session " + number); };
+            var columnsBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, WrapContents = false }; columnsBar.Controls.Add(columnButton);
+            resultCard.Controls.Add(session.Grid); resultCard.Controls.Add(columnsBar); resultCard.Controls.Add(info); resultCard.Controls.Add(controls);
             resultCard.Controls.Add(SectionHeader("Realtime Traceroute - Session " + number, "Continuous system-DNS route polling; TCP/UDP adds a destination service check"));
             split.Panel1.Controls.Add(resultCard);
 
@@ -567,7 +567,7 @@ namespace NetStuck
         Control TraceInputFrameV110(Control input)
         {
             var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(2), Margin = new Padding(0), BackColor = Color.White, Tag = "TraceInputFrame" };
-            input.Dock = DockStyle.None; input.Anchor = AnchorStyles.Left | AnchorStyles.Right; input.Margin = new Padding(0); input.BackColor = Color.White;
+            input.Dock = DockStyle.None; input.Anchor = AnchorStyles.Left | AnchorStyles.Top; input.Margin = new Padding(0); input.BackColor = Color.White;
             var numeric = input as NumericUpDown;
             if (numeric != null) numeric.BorderStyle = BorderStyle.None;
             var text = input as TextBox;
@@ -1659,7 +1659,7 @@ namespace NetStuck
             try
             {
                 if (String.IsNullOrWhiteSpace(networkIdentityCachePathV103) || !File.Exists(networkIdentityCachePathV103)) return null;
-                NetworkIdentityCacheV103 cache = new JavaScriptSerializer().Deserialize<NetworkIdentityCacheV103>(File.ReadAllText(networkIdentityCachePathV103, Encoding.UTF8));
+                NetworkIdentityCacheV103 cache = AtomicJson.Read<NetworkIdentityCacheV103>(networkIdentityCachePathV103);
                 return cache == null || String.IsNullOrWhiteSpace(cache.PublicIp) ? null : cache;
             }
             catch { return null; }
@@ -1670,7 +1670,7 @@ namespace NetStuck
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(networkIdentityCachePathV103));
-                File.WriteAllText(networkIdentityCachePathV103, new JavaScriptSerializer().Serialize(cache), new UTF8Encoding(false));
+                AtomicJson.Write(networkIdentityCachePathV103, cache);
             }
             catch { }
         }
