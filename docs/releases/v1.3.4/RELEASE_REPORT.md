@@ -1,5 +1,7 @@
 # NetStuck v1.3.4 release verification
 
+**Not published.** The tag's Portable Release run [37290733085](https://github.com/pk-wrk-sea/netstuck-platform/actions/runs/37290733085) stopped in Traceroute lifecycle tests with `Error creating window handle` during a Stop timeout label update. It completed 178 checks, 5/12 suites, with one infrastructure failure; no ZIP or draft was uploaded. PR and main CI passed 423/423, but that does not override this failed release run. A deterministic follow-up reproduced Stop state updates on thread 4 instead of UI thread 1. The repaired candidate is v1.3.5; the v1.3.4 tag is retained as failed-candidate history.
+
 The owner requested a new GitHub release after the [UI improvement report](../../UI_RESOLUTION_THEME_IMPROVEMENT_REPORT.md). The release includes those repairs, synchronized 1.3.4 metadata, 91 new UI checks and draft-first release staging with packaged startup verification. Historical v1.3.2/v1.3.3 test skips do not apply to this candidate.
 
 ## Candidate and current checks

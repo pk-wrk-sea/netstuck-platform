@@ -1488,6 +1488,7 @@ namespace NetStuck
         {
             TraceRunV123 run = session == null ? null : session.ActiveRun;
             if (run == null) return true;
+            EnsureTraceUiSynchronizationContextV123();
             session.Stop.Enabled = false; session.Stop.Text = "STOPPING"; session.Stop.BackColor = UiPalette.Background(Color.FromArgb(217, 119, 6)); session.Stop.ForeColor = Color.White;
             session.Stop.FlatAppearance.BorderColor = Warning;
             session.Paused = false; RequestTraceRunCancellationV123(run);
@@ -1501,7 +1502,8 @@ namespace NetStuck
             int pendingCount;
             lock (run.SyncRoot) pendingCount = run.InFlightTasks.Count;
             run.DrainTimedOut = true;
-            if (!appClosing && !IsDisposed && !Disposing)
+            if (Object.ReferenceEquals(session.ActiveRun, run) && !appClosing && !IsDisposed && !Disposing
+                && session.Page != null && !session.Page.IsDisposed && !session.Page.Disposing)
             {
                 session.State.Text = "Target: Stop incomplete (" + pendingCount + " task(s) pending)";
                 session.State.ForeColor = Danger;
