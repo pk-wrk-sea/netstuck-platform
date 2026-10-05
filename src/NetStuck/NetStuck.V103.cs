@@ -178,8 +178,8 @@ namespace NetStuck
             traceLookupCachePathV120 = Path.Combine(directory, "trace-lookups.json");
             try
             {
-                if (!File.Exists(traceLookupCachePathV120)) return;
-                TraceLookupCacheV120 saved = new JavaScriptSerializer().Deserialize<TraceLookupCacheV120>(File.ReadAllText(traceLookupCachePathV120, Encoding.UTF8));
+                if (!File.Exists(traceLookupCachePathV120) && !File.Exists(traceLookupCachePathV120 + ".bak")) return;
+                TraceLookupCacheV120 saved = AtomicJson.Read<TraceLookupCacheV120>(traceLookupCachePathV120);
                 if (saved == null) return;
                 if (saved.Providers != null)
                     foreach (KeyValuePair<string, TraceLookupCacheItemV120> item in saved.Providers) traceProviderEntriesV120[item.Key] = item.Value;
@@ -226,12 +226,9 @@ namespace NetStuck
                         Dns = traceDnsEntriesV120.OrderByDescending(item => item.Value == null ? DateTime.MinValue : item.Value.RetrievedUtc)
                             .Take(1000).ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase)
                     };
+                    Directory.CreateDirectory(Path.GetDirectoryName(traceLookupCachePathV120));
+                    AtomicJson.Write(traceLookupCachePathV120, snapshot);
                 }
-                Directory.CreateDirectory(Path.GetDirectoryName(traceLookupCachePathV120));
-                string temporary = traceLookupCachePathV120 + ".tmp";
-                File.WriteAllText(temporary, new JavaScriptSerializer().Serialize(snapshot), new UTF8Encoding(false));
-                if (File.Exists(traceLookupCachePathV120)) File.Delete(traceLookupCachePathV120);
-                File.Move(temporary, traceLookupCachePathV120);
             }
             catch { }
         }
@@ -288,10 +285,10 @@ namespace NetStuck
             profilePanel.Controls.Add(loadProfile, 0, 1); profilePanel.Controls.Add(saveProfile, 1, 1); profilePanel.Controls.Add(deleteProfile, 2, 1);
             profilePanel.Controls.Add(profileInfo, 0, 2); profilePanel.SetColumnSpan(profileInfo, 3);
 
-            var settings = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 286, ColumnCount = 2, RowCount = 8, Padding = new Padding(0, 8, 0, 0) };
+            var settings = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 241, ColumnCount = 2, RowCount = 7, Padding = new Padding(0, 8, 0, 0) };
             settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
             settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
-            foreach (int height in new[] { 31, 31, 31, 34, 31, 31, 38, 45 }) settings.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
+            foreach (int height in new[] { 31, 31, 31, 34, 31, 31, 38 }) settings.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
 
             pingInterval = NumberField(250, 60000, 1000, 250);
             pingTimeout = NumberField(100, 30000, 1500, 100);
@@ -319,32 +316,33 @@ namespace NetStuck
             dnsLine.Controls.Add(pingUseCustomDns, 0, 0); dnsLine.Controls.Add(pingDnsServer, 1, 0);
             settings.Controls.Add(dnsLine, 0, 6); settings.SetColumnSpan(dnsLine, 2);
 
-            var actionBar = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Padding = new Padding(0, 4, 0, 2) };
+            var actionBar = new FlowLayoutPanel { Name = "pingOperationActions", Dock = DockStyle.Bottom, Height = 45, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Padding = new Padding(0, 4, 0, 2) };
             pingStartButton = ActionButton("START", true, 104);
             pingPauseButton = ActionButton("PAUSE", false, 104); pingPauseButton.Enabled = false; pingPauseButton.ForeColor = TextMain;
             pingStopButton = DangerButton("STOP", 104); pingStopButton.Enabled = false;
             pingStartButton.Click += StartPing; pingPauseButton.Click += TogglePingPause; pingStopButton.Click += RequestPingStop;
             actionBar.Controls.AddRange(new Control[] { pingStartButton, pingPauseButton, pingStopButton });
-            settings.Controls.Add(actionBar, 0, 7); settings.SetColumnSpan(actionBar, 2);
 
             inputCard.Controls.Add(targetInput);
             inputCard.Controls.Add(targetHint);
             inputCard.Controls.Add(settings);
             inputCard.Controls.Add(profilePanel);
             inputCard.Controls.Add(inputHeader);
+            inputCard.Controls.Add(actionBar);
+            ProtectInputCard(inputCard, actionBar, 575);
             split.Panel1.Controls.Add(inputCard);
 
             var resultCard = Card();
-            var toolbar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 91, ColumnCount = 1, RowCount = 2, Padding = new Padding(0, 5, 0, 5) };
+            var toolbar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 96, ColumnCount = 1, RowCount = 3, Padding = new Padding(0, 2, 0, 2) };
             toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
+            toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 22)); toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 31)); toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 39));
             var searchLine = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
             searchLine.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); searchLine.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
-            var toolbarActions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 4, 0, 0) };
-            pingSearch = new TextBox { Dock = DockStyle.Fill };
+            var toolbarActions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 2, 0, 0) };
+            pingSearch = new TextBox { Dock = DockStyle.Fill, AccessibleName = "Live Ping search", AccessibleDescription = "Filter host, description, IP, status or error." };
             Cue(pingSearch, "Filter host, description, IP, status or error");
             pingSearch.TextChanged += delegate { ApplyPingFilter(); };
-            pingStatusFilter = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
+            pingStatusFilter = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill, AccessibleName = "Live Ping status filter" };
             pingStatusFilter.Items.AddRange(new object[] { "All status", "ICMP OK", "Connected", "Unreachable", "TCP Timeout", "Waiting" }); pingStatusFilter.SelectedIndex = 0;
             pingStatusFilter.SelectedIndexChanged += delegate { ApplyPingFilter(); };
             var copy = ActionButton("Copy", false, 104); var export = ActionButton("Export CSV", false, 104); var columns = ActionButton("Columns", false, 104);
@@ -353,7 +351,8 @@ namespace NetStuck
             columns.Click += ShowPingColumnChooser; cards.Click += delegate { TogglePingCards(cards); };
             searchLine.Controls.Add(pingSearch, 0, 0); searchLine.Controls.Add(pingStatusFilter, 1, 0);
             toolbarActions.Controls.AddRange(new Control[] { clear, cards, columns, export, copy });
-            toolbar.Controls.Add(searchLine, 0, 0); toolbar.Controls.Add(toolbarActions, 0, 1);
+            toolbar.Controls.Add(FieldLabel("Search results / status"), 0, 0);
+            toolbar.Controls.Add(searchLine, 0, 1); toolbar.Controls.Add(toolbarActions, 0, 2);
 
             pingTable = CreatePingTableV103();
             pingSource = new BindingSource { DataSource = pingTable };
@@ -388,7 +387,7 @@ namespace NetStuck
             AddGridColumn(pingHistoryGrid, "Latency", "LatencyMs", 90); AddGridColumn(pingHistoryGrid, "TTL", "Ttl", 65); AddGridColumn(pingHistoryGrid, "Result", "Result", 105);
             AddGridColumn(pingHistoryGrid, "Sequence", "Sequence", 78); AddGridColumn(pingHistoryGrid, "Detail", "Detail", 310);
             pingHistoryGrid.DataSource = pingHistorySource; pingHistoryGrid.CellFormatting += FormatPingHistoryCell; pingHistoryGrid.KeyDown += GridCopyShortcut;
-            var historyBar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 42, ColumnCount = 2, Padding = new Padding(2, 4, 2, 4) };
+            var historyBar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 36, ColumnCount = 2, Padding = new Padding(2, 0, 2, 0) };
             historyBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); historyBar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
             pingHistoryTitle = new Label { Text = "PING HISTORY  |  click a target row above to view", Dock = DockStyle.Fill, ForeColor = TextMuted, Font = new Font("Segoe UI Semibold", 8.5f), TextAlign = ContentAlignment.MiddleLeft };
             historyBar.Controls.Add(pingHistoryTitle, 0, 0);
@@ -398,7 +397,7 @@ namespace NetStuck
             resultCard.Controls.Add(pingResultSplit); resultCard.Controls.Add(toolbar); resultCard.Controls.Add(SectionHeader("Realtime results", "Click once to highlight a full row; sort, filter, reorder and resize columns"));
             split.Panel2.Controls.Add(resultCard);
             pingRoot.Controls.Add(metrics, 0, 0); pingRoot.Controls.Add(split, 0, 1); page.Controls.Add(pingRoot);
-            ConfigureSplit(page, split, 395, 340, 600); ConfigureHorizontalSplit(resultCard, pingResultSplit, 330, 220, 190);
+            ConfigureSplit(page, split, 395, 340, 600); ConfigureHorizontalSplit(resultCard, pingResultSplit, 330, 90, 128);
         }
 
         void BuildTracePage()
@@ -432,7 +431,7 @@ namespace NetStuck
             var controls = new TableLayoutPanel
             {
                 Dock = DockStyle.Top, Height = 184, ColumnCount = 1, RowCount = 3,
-                Padding = new Padding(12, 8, 12, 8), BackColor = Color.FromArgb(248, 250, 252),
+                Padding = new Padding(12, 8, 12, 8), BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)),
                 Margin = new Padding(0), Tag = "TraceControlPanelV123"
             };
             controls.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -441,7 +440,7 @@ namespace NetStuck
             controls.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             controls.Paint += delegate(object sender, PaintEventArgs e)
             {
-                using (var pen = new Pen(Color.FromArgb(203, 213, 225)))
+                using (var pen = new Pen(Border))
                     e.Graphics.DrawRectangle(pen, 0, 0, Math.Max(0, controls.Width - 1), Math.Max(0, controls.Height - 1));
             };
             var primaryFields = new TableLayoutPanel
@@ -489,7 +488,7 @@ namespace NetStuck
             actionFields.Controls.AddRange(new Control[] { session.Start, session.Pause, session.Stop });
             controls.Controls.Add(primaryFields, 0, 0); controls.Controls.Add(serviceFields, 0, 1); controls.Controls.Add(actionFields, 0, 2);
 
-            var info = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, BackColor = Color.FromArgb(248, 250, 252), Padding = new Padding(8, 7, 8, 0), WrapContents = false };
+            var info = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)), Padding = new Padding(8, 7, 8, 7), WrapContents = true };
             session.Cycle = new Label { Text = "Cycle: 0", AutoSize = true, ForeColor = TextMuted };
             session.Destination = new Label { Text = "Destination: -", AutoSize = true, ForeColor = TextMuted, Margin = new Padding(22, 0, 0, 0) };
             session.State = new Label { Text = "Target: Waiting", AutoSize = true, ForeColor = Warning, Font = new Font("Segoe UI Semibold", 9), Margin = new Padding(22, 0, 0, 0) };
@@ -502,7 +501,10 @@ namespace NetStuck
             AddGridColumn(session.Grid, "Worst", "WorstMs", 72); AddGridColumn(session.Grid, "Jitter", "JitterMs", 72); AddGridColumn(session.Grid, "Sent", "Sent", 58); AddGridColumn(session.Grid, "Received", "Received", 68);
             AddGridColumn(session.Grid, "Loss", "LossPct", 67); AddGridColumn(session.Grid, "Route changes", "RouteChanges", 98); AddGridColumn(session.Grid, "Updated", "Updated", 82);
             session.Grid.DataSource = session.Source; session.Grid.CellFormatting += FormatTraceCell; session.Grid.KeyDown += GridCopyShortcut;
-            resultCard.Controls.Add(session.Grid); resultCard.Controls.Add(info); resultCard.Controls.Add(controls);
+            var columnButton = ActionButton("Columns...", false, 105); columnButton.Name = "traceColumns" + number;
+            columnButton.Click += delegate { ShowColumnChooser(session.Grid, "Traceroute columns - Session " + number); };
+            var columnsBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, WrapContents = false }; columnsBar.Controls.Add(columnButton);
+            resultCard.Controls.Add(session.Grid); resultCard.Controls.Add(columnsBar); resultCard.Controls.Add(info); resultCard.Controls.Add(controls);
             resultCard.Controls.Add(SectionHeader("Realtime Traceroute - Session " + number, "Continuous system-DNS route polling; TCP/UDP adds a destination service check"));
             split.Panel1.Controls.Add(resultCard);
 
@@ -566,8 +568,8 @@ namespace NetStuck
 
         Control TraceInputFrameV110(Control input)
         {
-            var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(2), Margin = new Padding(0), BackColor = Color.White, Tag = "TraceInputFrame" };
-            input.Dock = DockStyle.None; input.Anchor = AnchorStyles.Left | AnchorStyles.Right; input.Margin = new Padding(0); input.BackColor = Color.White;
+            var frame = new Panel { Dock = DockStyle.Fill, Padding = new Padding(2), Margin = new Padding(0), BackColor = Surface, Tag = "TraceInputFrame" };
+            input.Dock = DockStyle.None; input.Anchor = AnchorStyles.Left | AnchorStyles.Top; input.Margin = new Padding(0); input.BackColor = Surface;
             var numeric = input as NumericUpDown;
             if (numeric != null) numeric.BorderStyle = BorderStyle.None;
             var text = input as TextBox;
@@ -579,12 +581,12 @@ namespace NetStuck
                 combo.DrawMode = DrawMode.OwnerDrawFixed;
                 combo.DrawItem += delegate(object sender, DrawItemEventArgs e)
                 {
-                    Color fill = Color.White;
+                    Color fill = Surface;
                     bool selected = combo.DroppedDown && (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-                    if (selected) fill = Color.FromArgb(219, 234, 254);
+                    if (selected) fill = UiPalette.Selection;
                     using (var brush = new SolidBrush(fill)) e.Graphics.FillRectangle(brush, e.Bounds);
                     string value = e.Index >= 0 && e.Index < combo.Items.Count ? Convert.ToString(combo.Items[e.Index]) : combo.Text;
-                    Color textColor = combo.Enabled ? TextMain : TextMuted;
+                    Color textColor = selected ? UiPalette.SelectionText : combo.Enabled ? TextMain : TextMuted;
                     TextRenderer.DrawText(e.Graphics, value ?? "", combo.Font, e.Bounds, textColor,
                         TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
                     if ((e.State & DrawItemState.Focus) == DrawItemState.Focus) e.DrawFocusRectangle();
@@ -599,7 +601,7 @@ namespace NetStuck
             frame.Resize += delegate { layout(); };
             frame.Paint += delegate(object sender, PaintEventArgs e)
             {
-                Color color = input.Focused ? Accent : input.Enabled ? Color.FromArgb(148, 163, 184) : Color.FromArgb(203, 213, 225);
+                Color color = input.Focused ? Accent : Border;
                 using (var pen = new Pen(color)) e.Graphics.DrawRectangle(pen, 0, 0, Math.Max(0, frame.Width - 1), Math.Max(0, frame.Height - 1));
             };
             input.Enter += delegate { frame.Invalidate(); };
@@ -613,7 +615,7 @@ namespace NetStuck
 
         void ApplyTraceInputPaletteV122(Control input, Panel frame)
         {
-            Color fill = Color.White;
+            Color fill = Surface;
             frame.BackColor = fill;
             input.BackColor = fill;
             foreach (Control child in input.Controls) child.BackColor = fill;
@@ -656,7 +658,7 @@ namespace NetStuck
             if (pingCancellation == null) return;
             pingPaused = !pingPaused;
             pingPauseButton.Text = pingPaused ? "RESUME" : "PAUSE";
-            pingPauseButton.BackColor = pingPaused ? Color.FromArgb(249, 115, 22) : Surface;
+            pingPauseButton.BackColor = pingPaused ? UiPalette.Background(Color.FromArgb(249, 115, 22)) : Surface;
             pingPauseButton.ForeColor = pingPaused ? Color.White : TextMain;
             pingPauseButton.FlatAppearance.BorderColor = pingPaused ? Color.FromArgb(249, 115, 22) : Border;
             appStatus.Text = pingPaused ? "Ping monitoring paused" : "Ping monitoring resumed";
@@ -1476,7 +1478,7 @@ namespace NetStuck
         {
             if (session.Cancellation == null) return;
             session.Paused = !session.Paused; session.Pause.Text = session.Paused ? "RESUME" : "PAUSE";
-            session.Pause.BackColor = session.Paused ? Color.FromArgb(249, 115, 22) : Surface;
+            session.Pause.BackColor = session.Paused ? UiPalette.Background(Color.FromArgb(249, 115, 22)) : Surface;
             session.Pause.ForeColor = session.Paused ? Color.White : TextMain;
             session.Pause.FlatAppearance.BorderColor = session.Paused ? Color.FromArgb(249, 115, 22) : Border;
             AddTraceEvent(session, "Info", 0, session.Paused ? "Trace paused" : "Trace resumed");
@@ -1486,7 +1488,7 @@ namespace NetStuck
         {
             TraceRunV123 run = session == null ? null : session.ActiveRun;
             if (run == null) return true;
-            session.Stop.Enabled = false; session.Stop.Text = "STOPPING"; session.Stop.BackColor = Warning; session.Stop.ForeColor = Color.White;
+            session.Stop.Enabled = false; session.Stop.Text = "STOPPING"; session.Stop.BackColor = UiPalette.Background(Color.FromArgb(217, 119, 6)); session.Stop.ForeColor = Color.White;
             session.Stop.FlatAppearance.BorderColor = Warning;
             session.Paused = false; RequestTraceRunCancellationV123(run);
             Task timeout = Task.Delay(GetTraceDrainTimeoutV123(run));
@@ -1517,14 +1519,14 @@ namespace NetStuck
             session.Page.Text = "Session " + session.Number + (running ? "  [RUNNING]" : "");
             if (running)
             {
-                session.Start.Text = "MONITORING"; session.Start.BackColor = Color.FromArgb(220, 252, 231); session.Start.ForeColor = Color.FromArgb(21, 128, 61); session.Start.FlatAppearance.BorderColor = Color.FromArgb(134, 239, 172);
+                session.Start.Text = "MONITORING"; session.Start.BackColor = UiPalette.Background(Color.FromArgb(220, 252, 231)); session.Start.ForeColor = UiPalette.Foreground(Color.FromArgb(21, 128, 61)); session.Start.FlatAppearance.BorderColor = Color.FromArgb(134, 239, 172);
                 session.Pause.Text = "PAUSE"; session.Pause.BackColor = Surface; session.Pause.ForeColor = TextMain; session.Pause.FlatAppearance.BorderColor = Border;
-                session.Stop.Text = "STOP NOW"; session.Stop.BackColor = Danger; session.Stop.ForeColor = Color.White; session.Stop.FlatAppearance.BorderColor = Danger;
+                session.Stop.Text = "STOP NOW"; session.Stop.BackColor = UiPalette.Background(Color.FromArgb(220, 38, 38)); session.Stop.ForeColor = Color.White; session.Stop.FlatAppearance.BorderColor = Danger;
                 appStatus.Text = "Traceroute session " + session.Number + " active";
             }
             else
             {
-                session.Paused = false; session.Start.Text = "START"; session.Start.BackColor = Accent; session.Start.ForeColor = Color.White;
+                session.Paused = false; session.Start.Text = "START"; session.Start.BackColor = UiPalette.Background(Color.FromArgb(37, 99, 235)); session.Start.ForeColor = Color.White;
                 session.Start.FlatAppearance.BorderColor = Accent;
                 session.Pause.Text = "PAUSE"; session.Pause.BackColor = Surface; session.Pause.ForeColor = TextMain; session.Pause.FlatAppearance.BorderColor = Border;
                 session.Stop.Text = "STOP"; session.Stop.BackColor = Surface; session.Stop.ForeColor = Danger;
@@ -1659,7 +1661,7 @@ namespace NetStuck
             try
             {
                 if (String.IsNullOrWhiteSpace(networkIdentityCachePathV103) || !File.Exists(networkIdentityCachePathV103)) return null;
-                NetworkIdentityCacheV103 cache = new JavaScriptSerializer().Deserialize<NetworkIdentityCacheV103>(File.ReadAllText(networkIdentityCachePathV103, Encoding.UTF8));
+                NetworkIdentityCacheV103 cache = AtomicJson.Read<NetworkIdentityCacheV103>(networkIdentityCachePathV103);
                 return cache == null || String.IsNullOrWhiteSpace(cache.PublicIp) ? null : cache;
             }
             catch { return null; }
@@ -1670,7 +1672,7 @@ namespace NetStuck
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(networkIdentityCachePathV103));
-                File.WriteAllText(networkIdentityCachePathV103, new JavaScriptSerializer().Serialize(cache), new UTF8Encoding(false));
+                AtomicJson.Write(networkIdentityCachePathV103, cache);
             }
             catch { }
         }

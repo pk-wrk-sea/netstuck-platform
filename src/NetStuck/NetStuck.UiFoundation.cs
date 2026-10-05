@@ -65,21 +65,21 @@ namespace NetStuck
         public const float AppTitleFontSize = 17f;
         public const float ResultFontSize = 15f;
 
-        public static Color Surface { get { return SystemInformation.HighContrast ? SystemColors.Window : Color.White; } }
-        public static Color SurfaceSubtle { get { return SystemInformation.HighContrast ? SystemColors.Window : Color.FromArgb(248, 250, 252); } }
-        public static Color Text { get { return SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(30, 41, 59); } }
-        public static Color MutedText { get { return SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(71, 85, 105); } }
-        public static Color Border { get { return SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(100, 116, 139); } }
-        public static Color Focus { get { return SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(29, 78, 216); } }
-        public static Color Info { get { return SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(29, 78, 216); } }
-        public static Color Success { get { return SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(22, 101, 52); } }
-        public static Color Error { get { return SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(185, 28, 28); } }
+        public static Color Surface { get { return SystemInformation.HighContrast ? SystemColors.Window : UiPalette.Background(Color.White); } }
+        public static Color SurfaceSubtle { get { return SystemInformation.HighContrast ? SystemColors.Window : UiPalette.Background(Color.FromArgb(248, 250, 252)); } }
+        public static Color Text { get { return SystemInformation.HighContrast ? SystemColors.WindowText : UiPalette.Foreground(Color.FromArgb(30, 41, 59)); } }
+        public static Color MutedText { get { return SystemInformation.HighContrast ? SystemColors.WindowText : UiPalette.Foreground(Color.FromArgb(71, 85, 105)); } }
+        public static Color Border { get { return SystemInformation.HighContrast ? SystemColors.WindowText : UiPalette.Foreground(Color.FromArgb(100, 116, 139)); } }
+        public static Color Focus { get { return SystemInformation.HighContrast ? SystemColors.Highlight : UiPalette.Foreground(Color.FromArgb(29, 78, 216)); } }
+        public static Color Info { get { return SystemInformation.HighContrast ? SystemColors.WindowText : UiPalette.Foreground(Color.FromArgb(29, 78, 216)); } }
+        public static Color Success { get { return SystemInformation.HighContrast ? SystemColors.WindowText : UiPalette.Foreground(Color.FromArgb(22, 101, 52)); } }
+        public static Color Error { get { return SystemInformation.HighContrast ? SystemColors.WindowText : UiPalette.Foreground(Color.FromArgb(185, 28, 28)); } }
         public static Color Destructive { get { return Error; } }
-        public static Color InfoSurface { get { return SystemInformation.HighContrast ? SystemColors.Window : Color.FromArgb(239, 246, 255); } }
-        public static Color SuccessSurface { get { return SystemInformation.HighContrast ? SystemColors.Window : Color.FromArgb(240, 253, 244); } }
-        public static Color ErrorSurface { get { return SystemInformation.HighContrast ? SystemColors.Window : Color.FromArgb(254, 242, 242); } }
-        public static Color HoverSurface { get { return SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(226, 232, 240); } }
-        public static Color PressedSurface { get { return SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(203, 213, 225); } }
+        public static Color InfoSurface { get { return SystemInformation.HighContrast ? SystemColors.Window : UiPalette.Background(Color.FromArgb(239, 246, 255)); } }
+        public static Color SuccessSurface { get { return SystemInformation.HighContrast ? SystemColors.Window : UiPalette.Background(Color.FromArgb(240, 253, 244)); } }
+        public static Color ErrorSurface { get { return SystemInformation.HighContrast ? SystemColors.Window : UiPalette.Background(Color.FromArgb(254, 242, 242)); } }
+        public static Color HoverSurface { get { return SystemInformation.HighContrast ? SystemColors.Highlight : UiPalette.Background(Color.FromArgb(226, 232, 240)); } }
+        public static Color PressedSurface { get { return SystemInformation.HighContrast ? SystemColors.Highlight : UiPalette.Background(Color.FromArgb(203, 213, 225)); } }
 
         public static UiStateDefinition State(UiSemanticState state)
         {
@@ -194,7 +194,7 @@ namespace NetStuck
 
             if (role == UiActionRole.Primary)
             {
-                button.BackColor = UiTokens.Info;
+                button.BackColor = UiPalette.Background(Color.FromArgb(29, 78, 216));
                 button.ForeColor = Color.White;
                 button.FlatAppearance.BorderColor = UiTokens.Info;
                 button.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 64, 175);
@@ -206,7 +206,7 @@ namespace NetStuck
                 button.ForeColor = UiTokens.Destructive;
                 button.FlatAppearance.BorderColor = UiTokens.Destructive;
                 button.FlatAppearance.MouseOverBackColor = UiTokens.ErrorSurface;
-                button.FlatAppearance.MouseDownBackColor = Color.FromArgb(254, 226, 226);
+                button.FlatAppearance.MouseDownBackColor = UiPalette.Background(Color.FromArgb(254, 226, 226));
             }
             else
             {
@@ -313,6 +313,8 @@ namespace NetStuck
                 announcementVersion++;
             }
         }
+
+        public void RefreshTheme() { SetState(currentState, currentTitle, currentDetail, false); }
 
         protected override void OnSystemColorsChanged(EventArgs e)
         {

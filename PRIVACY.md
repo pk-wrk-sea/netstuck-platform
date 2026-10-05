@@ -7,7 +7,7 @@ NetStuck is a desktop tool. Most data stays on the operator's Windows computer, 
 `%LOCALAPPDATA%\NetStuck` can contain:
 
 - Saved Ping profiles and targets
-- Window/menu/input state
+- Window/menu/input state and Light/Dark theme preference
 - Hop descriptions and Traceroute target history
 - DNS, MAC and WAN lookup inputs
 - Config Collector device lists, commands, usernames and output-folder path
@@ -29,6 +29,12 @@ Features may send queries to:
 | Cloudflare, Google and `pool.ntp.org` NTP endpoints | Time synchronization | Standard NTP request metadata |
 
 DNS forward/reverse queries use the Windows-configured system resolver. SSH/Telnet/Ping/Traceroute traffic goes to targets entered by the operator.
+
+## Updates and recovery
+
+Update checks contact `api.github.com` for the public NetStuck repository; downloads use GitHub and its HTTPS release-asset CDN. GitHub sees the request source IP and a NetStuck version User-Agent. No targets, credentials, usernames, logs or collector captures are sent. Daily checks can be disabled on Updates. Last successful check and public release metadata are cached locally.
+
+Atomic state/cache saves retain a `.bak` beside the original; it has the same sensitivity as the original file. `%LOCALAPPDATA%\NetStuck\updates` contains downloaded application packages, copied updater executables, recovery records and old application-file backups. It does not copy operator state or collector output.
 
 ## Repository rule
 

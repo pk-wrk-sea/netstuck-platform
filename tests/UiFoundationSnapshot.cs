@@ -7,6 +7,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -292,20 +293,14 @@ static class UiFoundationSnapshot
             AssertVisibleControls(form, scenario.VisibleControls);
             scenario.Assert(form);
             EstablishDeterministicViewport(form, scenario);
-            WaitForStableViewport(form, scenario, 2500);
-
-            using (var warmup = new Bitmap(scenario.Resolution.Width, scenario.Resolution.Height))
-                form.DrawToBitmap(warmup, new Rectangle(Point.Empty, warmup.Size));
+            using (var warmup = WaitForStableViewport(form, scenario, 3000)) { }
             EstablishDeterministicViewport(form, scenario);
-            WaitForStableViewport(form, scenario, 2500);
-            AssertPageActive(form, scenario.TargetPage);
-            AssertVisibleControls(form, scenario.VisibleControls);
-            scenario.Assert(form);
-
             string path = Path.Combine(output, scenario.Name + ".png");
-            using (var bitmap = new Bitmap(scenario.Resolution.Width, scenario.Resolution.Height))
+            using (var bitmap = WaitForStableViewport(form, scenario, 3000))
             {
-                form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                AssertPageActive(form, scenario.TargetPage);
+                AssertVisibleControls(form, scenario.VisibleControls);
+                scenario.Assert(form);
                 bitmap.Save(path, ImageFormat.Png);
             }
             Ensure(File.Exists(path), "scenario PNG was not written");
@@ -356,10 +351,11 @@ static class UiFoundationSnapshot
         form.Update();
     }
 
-    static void WaitForStableViewport(MainForm form, Scenario scenario, int timeoutMs)
+    static Bitmap WaitForStableViewport(MainForm form, Scenario scenario, int timeoutMs)
     {
         string previous = null;
         int stablePasses = 0;
+        long stableSince = 0;
         Stopwatch watch = Stopwatch.StartNew();
         while (watch.ElapsedMilliseconds < timeoutMs)
         {
@@ -368,10 +364,28 @@ static class UiFoundationSnapshot
             while (!postedMessageObserved && watch.ElapsedMilliseconds < timeoutMs) Application.DoEvents();
             EstablishDeterministicViewport(form, scenario);
             Application.DoEvents();
-            string current = GetViewportSignature(form);
-            if (String.Equals(previous, current, StringComparison.Ordinal)) stablePasses++;
-            else { previous = current; stablePasses = 1; }
-            if (stablePasses >= 4) return;
+            var bitmap = new Bitmap(scenario.Resolution.Width, scenario.Resolution.Height);
+            try
+            {
+                form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                string pixels;
+                using (var stream = new MemoryStream())
+                using (var hash = SHA256.Create())
+                {
+                    bitmap.Save(stream, ImageFormat.Png);
+                    pixels = Convert.ToBase64String(hash.ComputeHash(stream.ToArray()));
+                }
+                string current = GetViewportSignature(form) + pixels;
+                if (String.Equals(previous, current, StringComparison.Ordinal)) stablePasses++;
+                else { previous = current; stablePasses = 1; stableSince = watch.ElapsedMilliseconds; }
+                if (stablePasses >= 4 && watch.ElapsedMilliseconds - stableSince >= 200)
+                {
+                    Bitmap stable = bitmap;
+                    bitmap = null;
+                    return stable;
+                }
+            }
+            finally { if (bitmap != null) bitmap.Dispose(); }
             Thread.Sleep(10);
         }
         throw new InvalidOperationException("capture viewport did not reach a stable observable state: " + scenario.Name);

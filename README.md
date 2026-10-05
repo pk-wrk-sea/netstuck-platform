@@ -1,6 +1,10 @@
 # NetStuck
 
-NetStuck is a portable Windows network diagnostics and configuration-collection application. The current local candidate is **v1.3.0** and targets .NET Framework 4.x without requiring Python or the .NET SDK. The last published stable baseline remains **v1.2.3** until release acceptance is complete.
+NetStuck is a portable Windows network diagnostics and configuration-collection application targeting .NET Framework 4.x. **v1.3.4 improves responsive layouts, text zoom and Light/Dark readability**.
+
+Choose **Theme → Dark** (or Light) in the application header. The preference is saved locally and restored after restart. Text, status colors, tables, selection and application dialogs follow the chosen palette. Native Windows file/message dialogs and system chrome follow Windows.
+
+Ping and Collector operations remain visible while settings scroll. Search and credential fields have persistent labels; headers, dialogs, dropdowns and zoomed table rows fit their content. See the [UI audit](docs/UI_RESOLUTION_THEME_IMPROVEMENT_REPORT.md) and [v1.3.4 release verification](docs/releases/v1.3.4/RELEASE_REPORT.md). Real Windows Scale 125/150/200%, mixed-DPI monitors and accessibility modes remain unverified.
 
 ## Features
 
@@ -11,9 +15,12 @@ NetStuck is a portable Windows network diagnostics and configuration-collection 
 - Calculators: subnet/CIDR and network-unit conversions with quick references.
 - Config Collector: concurrent SSH/Telnet collection, AUTH1/AUTH2 fallback, streamed TXT/JSON output and error CSV export.
 
+- Updates: daily optional stable-release checks, manual **Check for updates**, last-check time and **Update now**. Downloads the complete GitHub ZIP, validates checksums, replaces package files after exit, retains a recovery backup and restarts. Stop network work before installation. See [update and recovery details](docs/UPDATES.md).
+- UI: NS circuit icon, full-height column drag guides, independent Traceroute column visibility and scrollable workspaces on small displays.
+
 ## Repository baseline and candidate
 
-The v1.3.0 candidate is prepared from the validated v1.2.3 source. Validation starts with the canonical command:
+v1.3.4 builds on the published v1.3.3 snapshot. Run validation with both Windows PowerShell 5.1 and PowerShell 7:
 
 ```powershell
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10

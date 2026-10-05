@@ -23,6 +23,13 @@ profiles.json
 mac-vendors.json
 trace-lookups.json
 network-identity-v103.json
+state.json.bak
+profiles.json.bak
+mac-vendors.json.bak
+trace-lookups.json.bak
+network-identity-v103.json.bak
+update-check.json*
+feature-state-test.json.bak
 feature-state-test.json
 fake-plink-*
 

@@ -16,6 +16,9 @@ Most behavior lives in one `partial MainForm`, split by historical feature layer
 | `src/NetStuck/NetStuck.V103.cs` | Active Live Ping and dual-session Traceroute, cadence schedulers, ICMP/TCP/UDP probes, adaptive TTL, DNS/ISP cache, network identity and v1.2.3 layout. |
 | `src/NetStuck/NetStuck.Release1.cs` | Cross-cutting UI/performance behavior, double buffering/copy support, activity indicators, batched Ping UI updates, hop descriptions and DNS polling. |
 | `src/NetStuck/NetStuck.Features.cs` | State schema, Config Collector SSH/Telnet, streamed capture, terminal batching, error CSV, NTP-backed clock and zoom. |
+| `src/NetStuck/NetStuck.Maintenance.cs` | Atomic JSON/backup recovery, result-grid guides, responsive workspace and lookup cancellation. |
+| `src/NetStuck/NetStuck.Updates.cs` | GitHub release check, bounded download, package validation, update helper and recovery. |
+| `src/NetStuck/NetStuck.Theme.cs` | Light/Dark palettes, reversible control colors, theme selector and themed control painting. |
 | `tests/*.cs` | Console regression harnesses. UI suites use reflection against private `MainForm` fields and methods. |
 
 ## Major runtime flows
@@ -46,6 +49,16 @@ Most behavior lives in one `partial MainForm`, split by historical feature layer
 5. Large output streams to a temporary capture. A bounded tail is retained for prompt recognition and a bounded terminal preview is drained in batches.
 6. Successful captures finalize to TXT and optional JSON; error export contains only failed rows.
 
+## Display and layout
+
+The main form and custom dialogs use a 96-DPI design baseline with WinForms DPI autoscaling. The existing system-DPI awareness and .NET Framework 4.x compatibility boundary remain in place. `FitDesktop` clamps the window to the current working area and retains the nominal 1100×700 minimum when that working area can accommodate it.
+
+Each page has a scrollable fallback canvas sized from available client space. Live Ping and Config Collector place operation buttons outside their independently scrollable input content, so long settings do not push Start/Stop below the visible card. Section headers measure and wrap their descriptions; Traceroute's information strip wraps related status/actions together.
+
+Ctrl+wheel zoom applies to text/result controls. Baseline font sizes are recorded before applying restored zoom. Grid row templates, existing rows and headers are resized on a zoom change; live probe updates continue to use the existing batching path. Fonts created by zoom are owned and disposed by the form.
+
+Light/Dark colors preserve semantic roles and reversible state. Filled actions retain strong contrast, while cards use quiet decorative borders and input/action boundaries remain visible. Native window frames, scrollbars and some control chrome still follow Windows; native per-monitor dark rendering is not claimed.
+
 ## Persistence
 
 The application writes these files under `%LOCALAPPDATA%\NetStuck`:
@@ -73,7 +86,7 @@ Tests set `NETSTUCK_TEST_ROOT` to a unique OS-temporary root, which redirects `s
 
 ## Build and provenance boundary
 
-Production compilation uses the six-file allowlist in `scripts/NetStuck.BuildProvenance.ps1`; directory discovery never adds a `.cs` file implicitly. `Build-NetStuck.ps1` invokes the .NET Framework compiler with `/noconfig` and `/nostdlib+`, then supplies `mscorlib` and every required framework reference by resolved absolute path. Raw hashes are recorded for repository inputs, references, compiler/runtime tools and the executable.
+Production compilation uses the nine-file allowlist in `scripts/NetStuck.BuildProvenance.ps1`; directory discovery never adds a `.cs` file implicitly. `Build-NetStuck.ps1` invokes the .NET Framework compiler with `/noconfig` and `/nostdlib+`, then supplies `mscorlib` and every required framework reference by resolved absolute path. Raw hashes are recorded for repository inputs, references, compiler/runtime tools and the executable.
 
 The portable identities are intentionally separate: repository source inputs, toolchain, normalized compiler invocation, explicit reference inputs, package inputs, decompressed package content and ZIP container. Actual and normalized compiler argv are emitted from one ordered argument specification, so each compiler option/path remains one atomic argument. Invocation identity uses a binary `v2` serialization containing a fixed ASCII header plus little-endian argument count, index and UTF-8 byte length followed by the UTF-8 bytes. Human-readable quoting is diagnostic only and is never fingerprint input. Canonical file manifests continue to use normalized relative paths, ordinal ordering, byte lengths, raw SHA-256 and UTF-8/LF records; absolute installation paths are diagnostic fields only.
 
@@ -83,5 +96,5 @@ The portable identities are intentionally separate: repository source inputs, to
 - Legacy UI builders coexist with active builders.
 - External HTTP/NTP providers are hard-coded rather than injected.
 - Tests depend heavily on private member names and some real machine/network state.
-- Persistence errors are frequently swallowed, and cache replacement should eventually become atomic with backup recovery.
-- The local time suffix is labeled `ICT` even when Windows uses another timezone.
+- User state and profile writes are atomic with backup recovery; cache failures remain non-fatal. Update backups require deliberate local housekeeping.
+- System-DPI-aware WinForms uses OS bitmap scaling across monitors with different DPI; per-monitor native rerendering is not claimed.

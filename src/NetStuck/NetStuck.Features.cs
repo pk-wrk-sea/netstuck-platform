@@ -35,6 +35,10 @@ namespace NetStuck
         public string PingDns { get; set; }
         public bool PingCardsVisible { get; set; }
         public List<string> PingColumns { get; set; }
+        public List<string> TraceColumns1 { get; set; }
+        public List<string> TraceColumns2 { get; set; }
+        public bool? AutoCheckUpdates { get; set; }
+        public string Theme { get; set; }
         public string PingSourceIp { get; set; }
         public bool PingAdvanced { get; set; }
         public string PingProtocol { get; set; }
@@ -371,6 +375,8 @@ namespace NetStuck
         bool clockNtp;
         float zoomScale = 1f;
         readonly Dictionary<Control, float> zoomBaseFonts = new Dictionary<Control, float>();
+        readonly Dictionary<Control, Font> zoomOwnedFonts = new Dictionary<Control, Font>();
+        readonly Dictionary<DataGridView, Font> zoomOwnedHeaderFonts = new Dictionary<DataGridView, Font>();
 
         ComboBox collectorProtocol;
         ComboBox collectorDeviceType;
@@ -430,8 +436,8 @@ namespace NetStuck
             transport.Controls.Add(FieldLabel("Device type"), 0, 2); transport.Controls.Add(collectorDeviceType, 1, 2); transport.SetColumnSpan(collectorDeviceType, 3);
             collectorProtocol.SelectedIndexChanged += delegate { collectorPort.Value = collectorProtocol.Text == "Telnet" ? 23 : 22; };
 
-            var auth = new TableLayoutPanel { Dock = DockStyle.Top, Height = 178, ColumnCount = 4, RowCount = 4, Padding = new Padding(0, 4, 0, 4) };
-            auth.RowStyles.Add(new RowStyle(SizeType.Absolute, 64)); auth.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
+            var auth = new TableLayoutPanel { Dock = DockStyle.Top, Height = 204, ColumnCount = 4, RowCount = 5, Padding = new Padding(0, 4, 0, 4) };
+            auth.RowStyles.Add(new RowStyle(SizeType.Absolute, 64)); auth.RowStyles.Add(new RowStyle(SizeType.Absolute, 24)); auth.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
             auth.RowStyles.Add(new RowStyle(SizeType.Absolute, 31)); auth.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             auth.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 68)); auth.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             auth.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); auth.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 98));
@@ -455,11 +461,14 @@ namespace NetStuck
             Cue(collectorAuth1User, "Username"); Cue(collectorAuth1Pass, "Password"); Cue(collectorAuth1Secret, "Enable secret");
             Cue(collectorAuth2User, "Username"); Cue(collectorAuth2Pass, "Password"); Cue(collectorAuth2Secret, "Enable secret");
             auth.Controls.Add(authOptions, 0, 0); auth.SetColumnSpan(authOptions, 4);
-            auth.Controls.Add(new Label { Text = "AUTH1", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI Semibold", 9f) }, 0, 1);
-            auth.Controls.Add(collectorAuth1User, 1, 1); auth.Controls.Add(collectorAuth1Pass, 2, 1); auth.Controls.Add(collectorAuth1Secret, 3, 1);
-            auth.Controls.Add(new Label { Text = "AUTH2", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI Semibold", 9f) }, 0, 2);
-            auth.Controls.Add(collectorAuth2User, 1, 2); auth.Controls.Add(collectorAuth2Pass, 2, 2); auth.Controls.Add(collectorAuth2Secret, 3, 2);
-            auth.Controls.Add(new Label { Text = "Both checked = try AUTH1 first, then AUTH2. Passwords/enable secrets stay in memory only.", Dock = DockStyle.Fill, ForeColor = Warning }, 0, 3); auth.SetColumnSpan(auth.GetControlFromPosition(0, 3), 4);
+            auth.Controls.Add(FieldLabel("Username"), 1, 1); auth.Controls.Add(FieldLabel("Password"), 2, 1); auth.Controls.Add(FieldLabel("Enable secret"), 3, 1);
+            auth.Controls.Add(new Label { Text = "AUTH1", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI Semibold", 9f) }, 0, 2);
+            auth.Controls.Add(collectorAuth1User, 1, 2); auth.Controls.Add(collectorAuth1Pass, 2, 2); auth.Controls.Add(collectorAuth1Secret, 3, 2);
+            auth.Controls.Add(new Label { Text = "AUTH2", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI Semibold", 9f) }, 0, 3);
+            auth.Controls.Add(collectorAuth2User, 1, 3); auth.Controls.Add(collectorAuth2Pass, 2, 3); auth.Controls.Add(collectorAuth2Secret, 3, 3);
+            collectorAuth1User.AccessibleName = "AUTH1 username"; collectorAuth1Pass.AccessibleName = "AUTH1 password"; collectorAuth1Secret.AccessibleName = "AUTH1 enable secret";
+            collectorAuth2User.AccessibleName = "AUTH2 username"; collectorAuth2Pass.AccessibleName = "AUTH2 password"; collectorAuth2Secret.AccessibleName = "AUTH2 enable secret";
+            auth.Controls.Add(new Label { Text = "AUTH1 is tried first, then AUTH2. Passwords and enable secrets stay in memory only.", Dock = DockStyle.Fill, ForeColor = TextMuted }, 0, 4); auth.SetColumnSpan(auth.GetControlFromPosition(0, 4), 4);
 
             var commandTabs = new TabControl { Dock = DockStyle.Bottom, Height = 185 };
             var basicTab = new TabPage("Basic commands") { Padding = new Padding(5) };
@@ -482,18 +491,19 @@ namespace NetStuck
             var browse = ActionButton("Browse…", false, 0); browse.Dock = DockStyle.Fill; browse.Click += BrowseCollectorFolder;
             folderBar.Controls.Add(collectorFolderBox, 0, 0); folderBar.Controls.Add(browse, 1, 0);
 
-            var collectorActions = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 52, ColumnCount = 5, Padding = new Padding(0, 5, 0, 5) };
-            collectorActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            collectorActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
-            collectorActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
-            collectorActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-            collectorActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 82));
+            var collectorActions = new TableLayoutPanel { Name = "collectorOperationActions", Dock = DockStyle.Bottom, Height = 90, ColumnCount = 6, RowCount = 2, Padding = new Padding(0, 5, 0, 5) };
+            for (int actionColumn = 0; actionColumn < 6; actionColumn++) collectorActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 6f));
+            collectorActions.RowStyles.Add(new RowStyle(SizeType.Percent, 50)); collectorActions.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
             var ping = ActionButton("Ping all", false, 0); ping.Dock = DockStyle.Fill; ping.Click += PingCollectorDevices;
             var open = ActionButton("Open folder", false, 0); open.Dock = DockStyle.Fill; open.Click += OpenCollectorFolder;
             collectorExportLog = ActionButton("Export errors", false, 0); collectorExportLog.Dock = DockStyle.Fill; collectorExportLog.Enabled = false; collectorExportLog.Click += ExportCollectorLog;
             collectorStart = ActionButton("COLLECT", true, 0); collectorStart.Dock = DockStyle.Fill; collectorStart.Click += StartCollector;
             collectorCancel = DangerButton("STOP", 0); collectorCancel.Dock = DockStyle.Fill; collectorCancel.Enabled = false; collectorCancel.Click += delegate { if (collectorCancellation != null) collectorCancellation.Cancel(); };
-            collectorActions.Controls.Add(ping, 0, 0); collectorActions.Controls.Add(open, 1, 0); collectorActions.Controls.Add(collectorExportLog, 2, 0); collectorActions.Controls.Add(collectorStart, 3, 0); collectorActions.Controls.Add(collectorCancel, 4, 0);
+            collectorActions.Controls.Add(ping, 0, 0); collectorActions.SetColumnSpan(ping, 2);
+            collectorActions.Controls.Add(open, 2, 0); collectorActions.SetColumnSpan(open, 2);
+            collectorActions.Controls.Add(collectorExportLog, 4, 0); collectorActions.SetColumnSpan(collectorExportLog, 2);
+            collectorActions.Controls.Add(collectorStart, 0, 1); collectorActions.SetColumnSpan(collectorStart, 3);
+            collectorActions.Controls.Add(collectorCancel, 3, 1); collectorActions.SetColumnSpan(collectorCancel, 3);
 
             collectorDevices = new TextBox
             {
@@ -502,6 +512,7 @@ namespace NetStuck
             };
             left.Controls.Add(collectorDevices); left.Controls.Add(collectorActions); left.Controls.Add(folderBar); left.Controls.Add(commandTabs); left.Controls.Add(auth); left.Controls.Add(transport);
             left.Controls.Add(SectionHeader("Remote collection", "SSH/Telnet • AUTH1 → AUTH2 fallback • enable secret • parallel devices"));
+            ProtectInputCard(left, collectorActions, 775);
 
             var resultCard = Card();
             var resultSplit = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterWidth = 8, BackColor = Canvas };
@@ -566,6 +577,10 @@ namespace NetStuck
         {
             List<CollectorDevice> devices = ParseCollectorDevices();
             if (devices.Count == 0) { MessageBox.Show(this, "Enter at least one device."); return; }
+            if (collectorPingBusy) return;
+            collectorPingBusy = true;
+            try
+            {
             collectorTable.Rows.Clear();
             collectorTerminal.Clear();
             foreach (CollectorDevice device in devices)
@@ -580,10 +595,13 @@ namespace NetStuck
                     }
                 }
                 catch (Exception ex) { detail = FriendlyError(ex); }
+                if (appClosing) return;
                 collectorTable.Rows.Add(device.Host, ok ? "Reachable" : "Unreachable", "ICMP", "", device.Description, "", ok ? latency + " ms" : detail);
                 AppendTerminal("[" + device.Host + "] " + (ok ? "Reachable " + latency + " ms" : "Unreachable: " + detail));
             }
             UpdateCollectorErrorExportStateV120();
+            }
+            finally { collectorPingBusy = false; }
         }
 
         async void StartCollector(object sender, EventArgs e)
@@ -605,7 +623,7 @@ namespace NetStuck
             collectorCancellation = new CancellationTokenSource();
             SetTabActivity("Config Collector", true);
             collectorStart.Enabled = false; collectorStart.Text = "● COLLECTING";
-            collectorCancel.Enabled = true; collectorCancel.BackColor = Danger; collectorCancel.ForeColor = Color.White;
+            collectorCancel.Enabled = true; collectorCancel.BackColor = UiPalette.Background(Color.FromArgb(220, 38, 38)); collectorCancel.ForeColor = Color.White;
             string protocol = collectorProtocol.Text;
             int parallel = (int)collectorConcurrency.Value;
             string basic = collectorBasic.Text, commands = collectorCommands.Text;
@@ -1504,12 +1522,13 @@ namespace NetStuck
         {
             using (var dialog = new Form { Text = "Realtime result columns", Width = 365, Height = 520, StartPosition = FormStartPosition.CenterParent, BackColor = Canvas, Font = Font, MinimizeBox = false, MaximizeBox = false, ShowInTaskbar = false })
             {
-                var list = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true, BorderStyle = BorderStyle.FixedSingle };
+                var list = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true, HorizontalScrollbar = true, AccessibleName = "Visible columns", BorderStyle = BorderStyle.FixedSingle };
                 foreach (DataGridViewColumn column in pingGrid.Columns) list.Items.Add(column.HeaderText, column.Visible);
-                var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 50, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
+                var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
                 var ok = ActionButton("Apply", true, 90); ok.DialogResult = DialogResult.OK;
                 var all = ActionButton("Select all", false, 90); all.Click += delegate { for (int i = 0; i < list.Items.Count; i++) list.SetItemChecked(i, true); };
                 bar.Controls.Add(ok); bar.Controls.Add(all); dialog.Controls.Add(list); dialog.Controls.Add(bar); dialog.AcceptButton = ok;
+                ApplyTheme(dialog);
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     if (list.CheckedItems.Count == 0) { MessageBox.Show(this, "Keep at least one column visible."); return; }
@@ -1530,17 +1549,7 @@ namespace NetStuck
 
         void ConfigureEqualSplit(TabPage page, SplitContainer split, int panel1Min, int panel2Min)
         {
-            bool configured = false;
-            LayoutEventHandler handler = null;
-            handler = delegate
-            {
-                int width = split.ClientSize.Width;
-                if (configured || width < panel1Min + panel2Min + split.SplitterWidth) return;
-                split.Panel1MinSize = panel1Min; split.Panel2MinSize = panel2Min;
-                split.SplitterDistance = (width - split.SplitterWidth) / 2;
-                configured = true; page.Layout -= handler;
-            };
-            page.Layout += handler;
+            ConfigureResponsiveSplit(split, -1, panel1Min, panel2Min);
         }
 
         async Task SynchronizeClockAsync()
@@ -1589,7 +1598,7 @@ namespace NetStuck
         void UpdateClockDisplay()
         {
             DateTime utc = clockElapsed == null ? DateTime.UtcNow : clockBaseUtc.Add(clockElapsed.Elapsed);
-            clockStatus.Text = utc.ToLocalTime().ToString("yyyy-MM-dd  HH:mm:ss") + (clockNtp ? " ICT" : "");
+            clockStatus.Text = ClockText(utc, TimeZoneInfo.Local) + (clockNtp ? " (NTP)" : "");
         }
 
         void EnableCtrlWheelZoom(Control root)
@@ -1601,7 +1610,7 @@ namespace NetStuck
         void RegisterZoomControl(Control control)
         {
             if (!(control is TextBox) && !(control is RichTextBox) && !(control is DataGridView)) return;
-            if (!zoomBaseFonts.ContainsKey(control)) zoomBaseFonts[control] = control.Font.Size / Math.Max(0.1f, zoomScale);
+            if (!zoomBaseFonts.ContainsKey(control)) zoomBaseFonts[control] = control.Font.Size;
             control.MouseWheel += ZoomMouseWheel;
         }
 
@@ -1618,13 +1627,32 @@ namespace NetStuck
             foreach (KeyValuePair<Control, float> pair in zoomBaseFonts.ToArray())
             {
                 if (pair.Key.IsDisposed) continue;
-                pair.Key.Font = new Font(pair.Key.Font.FontFamily, Math.Max(7f, pair.Value * zoomScale), pair.Key.Font.Style);
+                float size = Math.Max(7f, pair.Value * zoomScale);
+                if (Math.Abs(pair.Key.Font.Size - size) > 0.01f)
+                {
+                    Font prior;
+                    zoomOwnedFonts.TryGetValue(pair.Key, out prior);
+                    var next = new Font(pair.Key.Font.FontFamily, size, pair.Key.Font.Style);
+                    pair.Key.Font = next; zoomOwnedFonts[pair.Key] = next;
+                    if (prior != null) prior.Dispose();
+                }
                 var grid = pair.Key as DataGridView;
                 if (grid != null)
                 {
-                    grid.RowTemplate.Height = Math.Max(24, (int)Math.Round(32 * zoomScale));
-                    grid.ColumnHeadersHeight = Math.Max(28, (int)Math.Round(36 * zoomScale));
-                    grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", Math.Max(7f, 9f * zoomScale));
+                    int textHeight = TextRenderer.MeasureText("Ag", grid.Font).Height;
+                    int rowHeight = Math.Max(LayoutPixels(Math.Max(24, (int)Math.Round(32 * zoomScale))), textHeight + LayoutPixels(8));
+                    grid.RowTemplate.Height = rowHeight;
+                    foreach (DataGridViewRow row in grid.Rows) if (row.Height != rowHeight) row.Height = rowHeight;
+                    float headerSize = Math.Max(7f, 9f * zoomScale);
+                    Font priorHeader;
+                    zoomOwnedHeaderFonts.TryGetValue(grid, out priorHeader);
+                    if (grid.ColumnHeadersDefaultCellStyle.Font == null || Math.Abs(grid.ColumnHeadersDefaultCellStyle.Font.Size - headerSize) > 0.01f)
+                    {
+                        var nextHeader = new Font("Segoe UI Semibold", headerSize);
+                        grid.ColumnHeadersDefaultCellStyle.Font = nextHeader; zoomOwnedHeaderFonts[grid] = nextHeader;
+                        if (priorHeader != null) priorHeader.Dispose();
+                    }
+                    grid.ColumnHeadersHeight = Math.Max(LayoutPixels(Math.Max(28, (int)Math.Round(36 * zoomScale))), TextRenderer.MeasureText("Ag", grid.ColumnHeadersDefaultCellStyle.Font).Height + LayoutPixels(8));
                 }
             }
         }
@@ -1633,9 +1661,12 @@ namespace NetStuck
         {
             try
             {
-                if (!File.Exists(statePath)) return;
-                AppState s = new JavaScriptSerializer().Deserialize<AppState>(File.ReadAllText(statePath, Encoding.UTF8));
+                if (!File.Exists(statePath) && !File.Exists(statePath + ".bak")) return;
+                AppState s = AtomicJson.Read<AppState>(statePath);
                 if (s == null) return;
+                autoCheckUpdates.Checked = s.AutoCheckUpdates ?? true;
+                RestoreColumns(traceSessionsV103[0].Grid, s.TraceColumns1);
+                RestoreColumns(traceSessionsV103[1].Grid, s.TraceColumns2);
                 if (s.Width >= MinimumSize.Width && s.Height >= MinimumSize.Height) Size = new Size(s.Width, s.Height);
                 Rectangle screens = SystemInformation.VirtualScreen;
                 if (screens.Contains(new Point(s.Left + 40, s.Top + 40))) Location = new Point(s.Left, s.Top);
@@ -1708,6 +1739,7 @@ namespace NetStuck
                 }
                 if (selectedTab >= 0 && selectedTab < tabs.TabCount) tabs.SelectedIndex = selectedTab;
                 if (s.Maximized) WindowState = FormWindowState.Maximized;
+                SetApplicationTheme(String.Equals(s.Theme, "Dark", StringComparison.OrdinalIgnoreCase));
             }
             catch (Exception ex) { Log("WARNING", "State", "Could not restore previous state: " + FriendlyError(ex)); }
         }
@@ -1720,6 +1752,10 @@ namespace NetStuck
                 var s = new AppState
                 {
                     StateVersion = 6,
+                    AutoCheckUpdates = autoCheckUpdates.Checked,
+                    Theme = UiPalette.Dark ? "Dark" : "Light",
+                    TraceColumns1 = traceSessionsV103[0].Grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).Select(c => c.Name).ToList(),
+                    TraceColumns2 = traceSessionsV103[1].Grid.Columns.Cast<DataGridViewColumn>().Where(c => c.Visible).Select(c => c.Name).ToList(),
                     Width = bounds.Width, Height = bounds.Height, Left = bounds.Left, Top = bounds.Top, Maximized = WindowState == FormWindowState.Maximized,
                     SelectedTab = tabs.SelectedIndex, PingTargets = targetInput.Text, PingInterval = (int)pingInterval.Value, PingTimeout = (int)pingTimeout.Value,
                     PingCustomDns = pingUseCustomDns.Checked, PingDns = pingDnsServer.Text, PingCardsVisible = pingRoot.RowStyles[0].Height > 0,
@@ -1753,9 +1789,10 @@ namespace NetStuck
                     Zoom = zoomScale
                 };
                 Directory.CreateDirectory(Path.GetDirectoryName(statePath));
-                File.WriteAllText(statePath, new JavaScriptSerializer().Serialize(s), new UTF8Encoding(false));
+                AtomicJson.Write(statePath, s);
+                stateSaveSucceeded = true;
             }
-            catch { }
+            catch { stateSaveSucceeded = false; Log("WARNING", "State", "Could not save settings. Check folder permissions and disk space."); if (appClosing) MessageBox.Show(this, "Settings could not be saved. Your previous saved settings have been retained.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         }
     }
 }

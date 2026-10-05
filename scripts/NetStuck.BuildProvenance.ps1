@@ -4,7 +4,10 @@ $script:NetStuckProductionSourcePaths = @(
     'src/NetStuck/NetStuck.cs',
     'src/NetStuck/NetStuck.Features.cs',
     'src/NetStuck/NetStuck.Release1.cs',
-    'src/NetStuck/NetStuck.V103.cs'
+    'src/NetStuck/NetStuck.V103.cs',
+    'src/NetStuck/NetStuck.Maintenance.cs',
+    'src/NetStuck/NetStuck.Updates.cs',
+    'src/NetStuck/NetStuck.Theme.cs'
 )
 
 $script:NetStuckFrameworkReferenceNames = @(
@@ -16,7 +19,9 @@ $script:NetStuckFrameworkReferenceNames = @(
     'System.Drawing.dll',
     'System.Windows.Forms.dll',
     'System.Web.Extensions.dll',
-    'System.Xml.dll'
+    'System.Xml.dll',
+    'System.IO.Compression.dll',
+    'System.IO.Compression.FileSystem.dll'
 )
 
 function ConvertTo-NetStuckRelativePath {
@@ -45,6 +50,7 @@ function Get-NetStuckRepositoryInputSpecifications {
         $specifications.Add([pscustomobject]@{ Role = 'production-source'; RelativePath = $path })
     }
     $specifications.Add([pscustomobject]@{ Role = 'win32-icon'; RelativePath = 'src/NetStuck/assets/netstuck-bright.ico' })
+    $specifications.Add([pscustomobject]@{ Role = 'win32-manifest'; RelativePath = 'src/NetStuck/app.manifest' })
     return $specifications.ToArray()
 }
 
@@ -282,6 +288,7 @@ function Get-NetStuckBuildInvocation {
     }
     $specifications.Add((New-NetStuckCompilerArgumentSpecification -Role 'output' -Actual ("/out:" + [System.IO.Path]::GetFullPath($OutputPath)) -Normalized '/out:<OUTPUT>/NetStuck.exe'))
     $specifications.Add((New-NetStuckCompilerArgumentSpecification -Role 'win32-icon' -Actual ("/win32icon:" + (Join-Path $root ($iconRelative.Replace('/', '\')))) -Normalized ("/win32icon:" + $iconRelative)))
+    $specifications.Add((New-NetStuckCompilerArgumentSpecification -Role 'win32-manifest' -Actual ("/win32manifest:" + (Join-Path $root 'src\NetStuck\app.manifest')) -Normalized '/win32manifest:src/NetStuck/app.manifest'))
     foreach ($reference in $references) {
         $specifications.Add((New-NetStuckCompilerArgumentSpecification -Role 'framework-reference' -Actual ('/reference:' + $reference.FullPath) -Normalized ('/reference:<FRAMEWORK>/' + [System.IO.Path]::GetFileName($reference.FullPath))))
     }

@@ -1,6 +1,10 @@
 # NetStuck
 
-NetStuck เป็นโปรแกรม Network diagnostics และ Config Collector แบบ Portable สำหรับ Windows โดย candidate สำหรับใช้ในเครื่องปัจจุบันคือ **v1.3.0** ใช้ .NET Framework 4.x และไม่ต้องติดตั้ง Python หรือ .NET SDK ส่วน baseline ที่เผยแพร่แล้วล่าสุดยังคงเป็น **v1.2.3** จนกว่าจะผ่าน release acceptance
+NetStuck เป็นโปรแกรม Network diagnostics และ Config Collector แบบ Portable สำหรับ Windows/.NET Framework 4.x รุ่น **v1.3.4** ปรับ layout ให้เหมาะกับพื้นที่หน้าต่าง ปรับ text zoom และสี Light / Dark ให้อ่านสบายขึ้น
+
+เลือก **Theme → Dark** หรือ Light บนแถบหัวแอป ระบบจำธีมที่เลือกไว้ในเครื่อง สีข้อความ สถานะ ตาราง และหน้าต่างย่อยของแอปจะเปลี่ยนตามธีม ส่วนหน้าต่างเลือกไฟล์/ข้อความของ Windows ใช้รูปแบบของ Windows
+
+ปุ่มทำงานของ Ping และ Collector ยังมองเห็นได้เมื่อเลื่อน settings มี label ถาวรสำหรับ search และช่องยืนยันตัวตน พร้อมปรับ header, dialog, dropdown และความสูงแถวตารางตามข้อความ ดู [ผลตรวจ UI](docs/UI_RESOLUTION_THEME_IMPROVEMENT_REPORT.md) และ [รายงาน release v1.3.4](docs/releases/v1.3.4/RELEASE_REPORT.md) การใช้ Windows Scale 125/150/200%, จอ mixed-DPI และ accessibility modes ยังไม่ได้ตรวจบนสภาพแวดล้อมจริง
 
 ## ความสามารถหลัก
 
@@ -13,7 +17,7 @@ NetStuck เป็นโปรแกรม Network diagnostics และ Config 
 
 ## Baseline และ candidate
 
-Candidate v1.3.0 จัดทำจาก source baseline v1.2.3 ที่ผ่านการตรวจสอบแล้ว โดยเริ่ม validation ด้วยคำสั่งมาตรฐาน:
+คำสั่งมาตรฐานสำหรับการตรวจสอบด้านล่างต้องรันทั้ง Windows PowerShell 5.1 และ PowerShell 7:
 
 ```powershell
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10
