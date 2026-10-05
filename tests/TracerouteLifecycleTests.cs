@@ -237,7 +237,14 @@ static class TracerouteLifecycleTests
             harness.Start.PerformClick();
             object run = WaitForRun(harness);
             bool started = PumpUntil(delegate { return gate.Started == 1; }, 1500);
-            harness.Stop.PerformClick();
+            int stopStateThread = 0;
+            var state = (Label)Field(harness.Session, "State");
+            state.TextChanged += delegate
+            {
+                if (state.Text.Contains("Stop incomplete")) Interlocked.Exchange(ref stopStateThread, Thread.CurrentThread.ManagedThreadId);
+            };
+            SynchronizationContext.SetSynchronizationContext(null);
+            var stopTask = (Task<bool>)harness.Form.GetType().GetMethod("StopTraceSessionAsync", Members).Invoke(harness.Form, new[] { harness.Session });
             bool timeoutReported = PumpUntil(delegate { return Snapshot(run).DrainTimedOut; }, 1800);
             RunSnapshot timedOut = Snapshot(run);
             bool restartStillBlocked = Field(harness.Session, "ActiveRun") != null && !harness.Start.Enabled
@@ -246,6 +253,10 @@ static class TracerouteLifecycleTests
                 SnapshotDetail(timedOut));
             Check("Traceroute drain timeout cannot produce a false stopped state", restartStillBlocked,
                 "active=" + (Field(harness.Session, "ActiveRun") != null) + "; start-enabled=" + harness.Start.Enabled);
+            bool stopFinished = PumpUntil(delegate { return stopTask.IsCompleted; }, 1000);
+            Exception stopFailure = stopTask.IsFaulted ? stopTask.Exception : null;
+            Check("Traceroute Stop restores UI context before timeout-state updates", stopFinished && stopFailure == null && stopStateThread == uiThread,
+                "ui=" + uiThread + "; state-thread=" + stopStateThread + "; fault=" + (stopFailure == null ? "none" : stopFailure.GetType().Name));
             gate.ReleaseAll();
             bool stopped = WaitStopped(harness, 2500);
             RunSnapshot recovered = Snapshot(run);

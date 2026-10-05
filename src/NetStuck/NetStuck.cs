@@ -23,8 +23,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("NetStuck")]
 [assembly: AssemblyDescription("Network reachability and diagnostics")]
 [assembly: AssemblyCompany("NetStuck Project")]
-[assembly: AssemblyVersion("1.3.4.0")]
-[assembly: AssemblyFileVersion("1.3.4.0")]
+[assembly: AssemblyVersion("1.3.5.0")]
+[assembly: AssemblyFileVersion("1.3.5.0")]
 
 namespace NetStuck
 {
@@ -80,7 +80,7 @@ namespace NetStuck
     public sealed partial class MainForm : Form
     {
         const string AppName = "NetStuck";
-        const string AppVersion = "v.1.3.4";
+        const string AppVersion = "v.1.3.5";
         const int MaxExpandedTargets = 1024;
 
         Color Canvas { get { return UiPalette.Background(Color.FromArgb(245, 247, 250)); } }
@@ -760,12 +760,13 @@ namespace NetStuck
                 Font = new Font("Segoe UI", 10),
                 BackColor = Surface,
                 Text =
-                    "NetStuck v.1.3.4 (Current)\r\n" +
+                    "NetStuck v.1.3.5 (Current)\r\n" +
                     "Responsive layouts and more comfortable Light / Dark themes\r\n\r\n" +
                     "- Keep Ping and Collector actions visible while settings scroll.\r\n" +
                     "- Improve search labels, wrapped headers, dropdown sizing and dialogs.\r\n" +
                     "- Use neutral dark surfaces and clearer text/status contrast.\r\n" +
                     "- Restore text zoom correctly and fit existing/new table rows.\r\n" +
+                    "- Keep Traceroute Stop timeout messages on the UI thread.\r\n" +
                     "- Real Windows Scale 125/150/200% acceptance remains unverified.\r\n\r\n" +
                     "NetStuck v.1.3.3\r\n" +
                     "Light and Dark themes\r\n\r\n" +

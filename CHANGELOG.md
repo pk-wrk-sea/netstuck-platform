@@ -2,7 +2,15 @@
 
 All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git tags and `v.MAJOR.MINOR.PATCH` in the legacy application UI.
 
-## v1.3.4 — Responsive layouts and theme readability, 2026-10-05
+## v1.3.5 — Responsive UI with safe Traceroute Stop, 2026-10-05
+
+- Includes the responsive layout, Light/Dark, text-zoom and snapshot improvements prepared for the unpublished v1.3.4 candidate.
+- Restore the WinForms UI synchronization context before awaiting Traceroute Stop; timeout labels remain on the UI thread even when the caller has no synchronization context.
+- Prevent an old Stop timeout from changing a replaced run or disposed session page.
+- Add a deterministic regression for the off-thread timeout-state update; increase the required lifecycle suite to 32 and the complete runner to 424 checks.
+- Preserve the failed v1.3.4 tag and its release-run evidence. The failed run produced no release assets; publication uses the repaired v1.3.5 candidate.
+
+## v1.3.4 — Unpublished UI candidate, 2026-10-05
 
 - Keep Live Ping and Config Collector operations visible outside scrollable settings; size page workspaces from the available client area.
 - Add persistent search/credential labels, wrapped card descriptions, content-sized dialog actions and font-aware dropdown sizing.
@@ -12,6 +20,7 @@ All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git 
 - Run fresh local regression, deterministic capture, Windows CI and packaged startup verification for this release. Real Windows Scale 125/150/200%, mixed-DPI and accessibility-mode acceptance remain unverified; see the release report.
 - Stage automated release uploads as drafts and verify packaged startup; published assets cannot be overwritten by a workflow rerun.
 - Wait for rendered pixels as well as geometry before snapshot capture; retain the strict five-run screenshot comparison.
+- Release packaging stopped in a Traceroute Stop timeout on Windows CI; this candidate was not published.
 
 ## v1.3.3 — Light and Dark themes, 2026-09-23
 
