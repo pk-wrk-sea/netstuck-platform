@@ -13,20 +13,20 @@ namespace NetStuck
         public static bool IsDark { get { return Dark && !SystemInformation.HighContrast; } }
         static Color R(int rgb) { return Color.FromArgb((rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255); }
         static readonly Dictionary<int, Color> backgrounds = new Dictionary<int, Color> {
-            {0xFFFFFF,R(0x1B2433)}, {0xF5F7FA,R(0x111827)}, {0xF8FAFC,R(0x222E40)},
-            {0xFAFBFD,R(0x1E293B)}, {0xDBEAFE,R(0x214F82)}, {0xEFF6FF,R(0x1D3553)},
-            {0xF0FDF4,R(0x173D2C)}, {0xFEF2F2,R(0x46252C)}, {0xFFFBEB,R(0x44371C)},
-            {0xDCFCE7,R(0x174832)}, {0xE2E8F0,R(0x334155)}, {0xCBD5E1,R(0x42516A)},
+            {0xFFFFFF,R(0x24262B)}, {0xF5F7FA,R(0x1B1D22)}, {0xF8FAFC,R(0x2B2E34)},
+            {0xFAFBFD,R(0x282A30)}, {0xDBEAFE,R(0x344D6A)}, {0xEFF6FF,R(0x29384B)},
+            {0xF0FDF4,R(0x293C32)}, {0xFEF2F2,R(0x443035)}, {0xFFFBEB,R(0x433C2A)},
+            {0xDCFCE7,R(0x304C3C)}, {0xE2E8F0,R(0x373B43)}, {0xCBD5E1,R(0x444A55)},
             {0xFEE2E2,R(0x612B34)}, {0x2563EB,R(0x2563EB)}, {0x1D4ED8,R(0x1D4ED8)},
             {0xDC2626,R(0xB91C1C)}, {0x16A34A,R(0x166534)}, {0xD97706,R(0x92400E)},
             {0xF97316,R(0x9A3412)}
         };
         static readonly Dictionary<int, Color> foregrounds = new Dictionary<int, Color> {
-            {0x000000,R(0xE5E7EB)}, {0x1E293B,R(0xE2E8F0)}, {0x475569,R(0xBCC9DB)},
-            {0x64748B,R(0xA9B8CE)}, {0xDAE0E8,R(0x46566E)}, {0x94A3B8,R(0x8B9BB4)},
-            {0xCBD5E1,R(0x52617A)}, {0x2563EB,R(0x93C5FD)}, {0x1D4ED8,R(0xA4CCFF)},
-            {0x16A34A,R(0x86EFAC)}, {0x166534,R(0xA0F0BC)}, {0x15803D,R(0x91E8AC)},
-            {0xDC2626,R(0xFCA5A5)}, {0xB91C1C,R(0xFFB4B4)}, {0xD97706,R(0xFCD34D)},
+            {0x000000,R(0xE5E7EB)}, {0x1E293B,R(0xE2E5EB)}, {0x475569,R(0xBAC0CC)},
+            {0x64748B,R(0xA4ADBD)}, {0xDAE0E8,R(0x4C525E)}, {0x94A3B8,R(0x919BAE)},
+            {0xCBD5E1,R(0x626C7C)}, {0x2563EB,R(0xA2C4F4)}, {0x1D4ED8,R(0xB0CCF4)},
+            {0x16A34A,R(0x92D5AD)}, {0x166534,R(0x9AD6B2)}, {0x15803D,R(0xA5DEBD)},
+            {0xDC2626,R(0xF0ACB2)}, {0xB91C1C,R(0xF4B5BA)}, {0xD97706,R(0xE6C580)}, {0x92400E,R(0xE8CB92)},
             {0x86EFAC,R(0x4C9D6D)}, {0xFCA5A5,R(0xBA6673)}, {0xF97316,R(0xFDBA74)}
         };
         static int Key(Color color) { return color.ToArgb() & 0xFFFFFF; }
@@ -34,16 +34,33 @@ namespace NetStuck
         {
             if (light.IsEmpty || light.A == 0) return light;
             if (SystemInformation.HighContrast) return SystemColors.Window;
-            if (!IsDark) return light;
-            if (light.IsSystemColor) return R(0x1B2433);
+            if (!IsDark)
+            {
+                int key = Key(light);
+                if (key == 0x16A34A) return R(0x166534);
+                if (key == 0xDC2626) return R(0xB91C1C);
+                if (key == 0xD97706) return R(0x92400E);
+                if (key == 0xF97316) return R(0x9A3412);
+                return light;
+            }
+            if (light.IsSystemColor) return R(0x24262B);
             Color dark; return backgrounds.TryGetValue(Key(light), out dark) ? dark : light;
         }
         public static Color Foreground(Color light)
         {
             if (light.IsEmpty || light.A == 0) return light;
             if (SystemInformation.HighContrast) return SystemColors.WindowText;
-            if (!IsDark) return light;
-            if (light.IsSystemColor) return light == SystemColors.GrayText ? R(0xA9B8CE) : R(0xE5E7EB);
+            if (!IsDark)
+            {
+                // Semantic text needs a darker shade than a filled status button.
+                int key = Key(light);
+                if (key == 0x16A34A) return R(0x166534);
+                if (key == 0xDC2626) return R(0xB91C1C);
+                if (key == 0xD97706) return R(0x92400E);
+                if (key == 0xF97316) return R(0x9A3412);
+                return light;
+            }
+            if (light.IsSystemColor) return light == SystemColors.GrayText ? R(0xA4ADBD) : R(0xE5E7EB);
             Color dark; return foregrounds.TryGetValue(Key(light), out dark) ? dark : light;
         }
         public static Color ToLight(Color current, bool background, bool wasDark)
@@ -149,6 +166,11 @@ namespace NetStuck
                 control.Disposed += delegate { themeControls.Remove(control); };
                 control.ControlAdded += delegate(object sender, ControlEventArgs e) { BindTheme(e.Control); };
                 var combo = control as ComboBox;
+                if (combo != null)
+                {
+                    combo.FontChanged += delegate { UpdateComboMetrics(combo); };
+                    combo.DropDown += delegate { UpdateComboMetrics(combo); };
+                }
                 if (combo != null && combo.DrawMode == DrawMode.Normal)
                 {
                     combo.DrawMode = DrawMode.OwnerDrawFixed;
@@ -161,6 +183,7 @@ namespace NetStuck
                         if ((e.State & DrawItemState.Focus) != 0) e.DrawFocusRectangle();
                     };
                 }
+                if (combo != null) UpdateComboMetrics(combo);
                 var innerTabs = control as TabControl;
                 if (innerTabs != null && innerTabs != tabs)
                 {
@@ -177,8 +200,9 @@ namespace NetStuck
                 var button = control as Button;
                 if (button != null) button.Paint += delegate(object sender, PaintEventArgs e)
                 {
-                    if (button.Enabled || !UiPalette.IsDark) return;
-                    using (var brush = new SolidBrush(Surface)) e.Graphics.FillRectangle(brush, button.ClientRectangle);
+                    if (button.Enabled || SystemInformation.HighContrast) return;
+                    Color fill = UiPalette.IsDark ? UiTokens.SurfaceSubtle : Color.FromArgb(241, 243, 246);
+                    using (var brush = new SolidBrush(fill)) e.Graphics.FillRectangle(brush, button.ClientRectangle);
                     using (var pen = new Pen(Border)) e.Graphics.DrawRectangle(pen, 0, 0, button.Width - 1, button.Height - 1);
                     TextRenderer.DrawText(e.Graphics, button.Text, button.Font, Rectangle.Inflate(button.ClientRectangle, -3, -2), TextMuted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
                 };
@@ -186,6 +210,16 @@ namespace NetStuck
             colors.Capture(UiPalette.IsDark); colors.ApplyStored();
             ApplyThemeDetails(control, UiPalette.IsDark);
             foreach (Control child in control.Controls) BindTheme(child);
+        }
+
+        void UpdateComboMetrics(ComboBox combo)
+        {
+            if (combo.IsDisposed) return;
+            if (combo.DrawMode != DrawMode.Normal) combo.ItemHeight = Math.Max(16, combo.Font.Height + 2);
+            int width = combo.Width;
+            foreach (object item in combo.Items)
+                width = Math.Max(width, TextRenderer.MeasureText(combo.GetItemText(item), combo.Font).Width + SystemInformation.VerticalScrollBarWidth + 12);
+            combo.DropDownWidth = Math.Min(Math.Max(1, Screen.FromControl(combo).WorkingArea.Width), width);
         }
 
         void ApplyThemeDetails(Control control, bool wasDark)
@@ -221,7 +255,7 @@ namespace NetStuck
             if (strip != null)
             {
                 strip.BackColor = Surface; strip.ForeColor = TextMuted;
-                strip.Renderer = new ToolStripSystemRenderer();
+                strip.Renderer = SystemInformation.HighContrast ? (ToolStripRenderer)new ToolStripSystemRenderer() : new QuietStripRenderer();
                 foreach (ToolStripItem item in strip.Items)
                 {
                     item.BackColor = Surface;
@@ -231,6 +265,24 @@ namespace NetStuck
             var presenter = control as UiStatePresenter;
             if (presenter != null) presenter.RefreshTheme();
             control.Invalidate();
+        }
+    }
+
+    sealed class QuietStripRenderer : ToolStripProfessionalRenderer
+    {
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            using (var brush = new SolidBrush(UiTokens.Surface)) e.Graphics.FillRectangle(brush, e.AffectedBounds);
+        }
+        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        {
+            using (var pen = new Pen(UiPalette.Foreground(Color.FromArgb(218, 224, 232))))
+                e.Graphics.DrawLine(pen, 0, 0, e.ToolStrip.Width, 0);
+        }
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            using (var pen = new Pen(UiPalette.Foreground(Color.FromArgb(218, 224, 232))))
+                e.Graphics.DrawLine(pen, e.Item.Width / 2, 4, e.Item.Width / 2, e.Item.Height - 4);
         }
     }
 }

@@ -107,8 +107,13 @@ namespace NetStuck
 
         void InitializeResponsiveLayout()
         {
-            // Preserve a usable canvas, with scrolling on smaller/high-DPI desktops.
-            foreach (TabPage page in tabs.TabPages) ProtectPageCanvas(page, page.Text == "Config Collector" ? 1150 : 1040, page.Text == "Config Collector" ? 820 : 620);
+            // Dense input cards scroll independently; results use the available height.
+            foreach (TabPage page in tabs.TabPages)
+            {
+                int width = 1020;
+                int height = page.Text == "Live Ping" ? 480 : page.Text == "Traceroute" ? 560 : page.Text == "Calculators" ? 460 : 360;
+                ProtectPageCanvas(page, width, height);
+            }
             tabs.Multiline = true;
             Shown += delegate { FitDesktop(); };
             LocationChanged += delegate { if (Visible) FitDesktop(); };
@@ -142,19 +147,50 @@ namespace NetStuck
         void ProtectPageCanvas(TabPage page, int minimumWidth, int minimumHeight)
         {
             var children = page.Controls.Cast<Control>().ToArray();
-            var viewport = new Panel { Name = "responsiveViewport", Dock = DockStyle.Fill, AutoScroll = true };
-            var canvas = new Panel { Name = "responsiveCanvas", Location = Point.Empty };
+            var viewport = new Panel { Name = "responsiveViewport", Dock = DockStyle.Fill, AutoScroll = true, Margin = new Padding(0) };
+            var canvas = new Panel { Name = "responsiveCanvas", Location = Point.Empty, Margin = new Padding(0) };
             page.Controls.Clear();
             canvas.Controls.AddRange(children);
             viewport.Controls.Add(canvas); page.Controls.Add(viewport);
             Action arrange = delegate
             {
-                float scale = 1f;
-                if (AutoScaleMode != AutoScaleMode.None) using (var graphics = CreateGraphics()) scale = graphics.DpiX / 96f;
-                int w = Math.Max((int)(minimumWidth * scale), viewport.ClientSize.Width - SystemInformation.VerticalScrollBarWidth);
-                int h = Math.Max((int)(minimumHeight * scale), viewport.ClientSize.Height - SystemInformation.HorizontalScrollBarHeight);
+                int minimumW = LayoutPixels(minimumWidth), minimumH = LayoutPixels(minimumHeight);
+                int availableW = viewport.ClientSize.Width, availableH = viewport.ClientSize.Height;
+                // ClientSize already excludes visible scrollbars. Reserve space only
+                // when overflow requires a new one, instead of creating overflow itself.
+                if (minimumH > availableH && !viewport.VerticalScroll.Visible) availableW -= SystemInformation.VerticalScrollBarWidth;
+                if (minimumW > availableW && !viewport.HorizontalScroll.Visible) availableH -= SystemInformation.HorizontalScrollBarHeight;
+                int w = Math.Max(minimumW, availableW), h = Math.Max(minimumH, availableH);
                 Size next = new Size(w, h);
                 if (canvas.Size != next) canvas.Size = next;
+            };
+            viewport.SizeChanged += delegate { arrange(); };
+            viewport.FontChanged += delegate { arrange(); };
+            arrange();
+        }
+
+        int LayoutPixels(int logicalPixels)
+        {
+            if (AutoScaleMode == AutoScaleMode.None) return logicalPixels;
+            using (var graphics = CreateGraphics()) return Math.Max(1, (int)Math.Round(logicalPixels * graphics.DpiX / 96f));
+        }
+
+        void ProtectInputCard(Control card, Control pinnedActions, int minimumHeight)
+        {
+            var children = card.Controls.Cast<Control>().Where(c => c != pinnedActions).ToArray();
+            var viewport = new Panel { Name = "inputViewport", Dock = DockStyle.Fill, AutoScroll = true, BackColor = Surface, Margin = new Padding(0) };
+            var canvas = new Panel { Name = "inputCanvas", Location = Point.Empty, BackColor = Surface, Margin = new Padding(0) };
+            foreach (Control child in children) card.Controls.Remove(child);
+            canvas.Controls.AddRange(children);
+            viewport.Controls.Add(canvas);
+            card.Controls.Add(viewport);
+            viewport.BringToFront();
+            Action arrange = delegate
+            {
+                int height = Math.Max(LayoutPixels(minimumHeight), viewport.ClientSize.Height);
+                int width = viewport.ClientSize.Width;
+                if (height > viewport.ClientSize.Height && !viewport.VerticalScroll.Visible) width -= SystemInformation.VerticalScrollBarWidth;
+                canvas.Size = new Size(Math.Max(1, width), height);
             };
             viewport.SizeChanged += delegate { arrange(); };
             viewport.FontChanged += delegate { arrange(); };
@@ -197,10 +233,10 @@ namespace NetStuck
         {
             using (var dialog = new Form { Text = title, Size = new Size(365, 520), StartPosition = FormStartPosition.CenterParent, Font = Font, MinimizeBox = false, MaximizeBox = false, ShowInTaskbar = false })
             {
-                var list = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true, AccessibleName = "Visible columns" };
+                var list = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true, HorizontalScrollbar = true, AccessibleName = "Visible columns" };
                 var columns = grid.Columns.Cast<DataGridViewColumn>().OrderBy(c => c.DisplayIndex).ToArray();
                 foreach (var column in columns) list.Items.Add(column.HeaderText, column.Visible);
-                var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 50, FlowDirection = FlowDirection.RightToLeft };
+                var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
                 var ok = ActionButton("Apply", true, 90);
                 ok.Click += delegate
                 {
@@ -213,10 +249,21 @@ namespace NetStuck
                 all.Click += delegate { for (int i = 0; i < list.Items.Count; i++) list.SetItemChecked(i, true); };
                 bar.Controls.Add(ok); bar.Controls.Add(all); dialog.Controls.Add(list); dialog.Controls.Add(bar);
                 dialog.AcceptButton = ok;
-                dialog.Height = Math.Min(dialog.Height, Screen.FromControl(this).WorkingArea.Height);
                 ApplyTheme(dialog);
                 dialog.ShowDialog(this);
             }
+        }
+
+        void PrepareDialog(Form dialog)
+        {
+            dialog.AutoScaleDimensions = new SizeF(96, 96);
+            dialog.AutoScaleMode = AutoScaleMode.Dpi;
+            dialog.Shown += delegate
+            {
+                Rectangle work = Screen.FromControl(dialog).WorkingArea;
+                dialog.Size = new Size(Math.Min(dialog.Width, work.Width), Math.Min(dialog.Height, work.Height));
+                dialog.Location = new Point(Math.Max(work.Left, Math.Min(dialog.Left, work.Right - dialog.Width)), Math.Max(work.Top, Math.Min(dialog.Top, work.Bottom - dialog.Height)));
+            };
         }
 
         static void RestoreColumns(DataGridView grid, List<string> visible)

@@ -90,7 +90,7 @@ namespace NetStuck
                 if (!(uri.Host == "api.github.com" || uri.Host == "github.com" || uri.Host == "release-assets.githubusercontent.com" || uri.Host == "objects.githubusercontent.com"))
                     throw new InvalidDataException("Untrusted download host.");
                 var request = (HttpWebRequest)WebRequest.Create(uri);
-                request.AllowAutoRedirect = false; request.UserAgent = "NetStuck/1.3.3";
+                request.AllowAutoRedirect = false; request.UserAgent = "NetStuck/1.3.4";
                 request.Accept = "application/vnd.github+json";
                 request.Timeout = 15000; request.ReadWriteTimeout = 15000;
                 using (token.Register(request.Abort))

@@ -23,8 +23,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("NetStuck")]
 [assembly: AssemblyDescription("Network reachability and diagnostics")]
 [assembly: AssemblyCompany("NetStuck Project")]
-[assembly: AssemblyVersion("1.3.3.0")]
-[assembly: AssemblyFileVersion("1.3.3.0")]
+[assembly: AssemblyVersion("1.3.4.0")]
+[assembly: AssemblyFileVersion("1.3.4.0")]
 
 namespace NetStuck
 {
@@ -80,18 +80,18 @@ namespace NetStuck
     public sealed partial class MainForm : Form
     {
         const string AppName = "NetStuck";
-        const string AppVersion = "v.1.3.3";
+        const string AppVersion = "v.1.3.4";
         const int MaxExpandedTargets = 1024;
 
         Color Canvas { get { return UiPalette.Background(Color.FromArgb(245, 247, 250)); } }
         Color Surface { get { return UiPalette.Background(Color.White); } }
         Color Border { get { return UiPalette.Foreground(Color.FromArgb(218, 224, 232)); } }
         Color TextMain { get { return UiPalette.Foreground(Color.FromArgb(30, 41, 59)); } }
-        Color TextMuted { get { return UiPalette.Foreground(Color.FromArgb(100, 116, 139)); } }
+        Color TextMuted { get { return UiTokens.MutedText; } }
         Color Accent { get { return UiPalette.Foreground(Color.FromArgb(37, 99, 235)); } }
-        Color Success { get { return UiPalette.Foreground(Color.FromArgb(22, 163, 74)); } }
+        Color Success { get { return UiTokens.Success; } }
         Color Danger { get { return UiPalette.Foreground(Color.FromArgb(220, 38, 38)); } }
-        Color Warning { get { return UiPalette.Foreground(Color.FromArgb(217, 119, 6)); } }
+        Color Warning { get { return UiPalette.Foreground(Color.FromArgb(146, 64, 14)); } }
 
         readonly TabControl tabs = new TabControl();
         readonly Dictionary<string, TabPage> pagesByName = new Dictionary<string, TabPage>(StringComparer.OrdinalIgnoreCase);
@@ -216,6 +216,7 @@ namespace NetStuck
                 if (stopPingUiTimerAfterDrain && pingUiUpdates.IsEmpty) pingUiTimer.Stop();
             };
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { Icon = SystemIcons.Error; }
+            AutoScaleDimensions = new SizeF(96f, 96f);
             AutoScaleMode = AutoScaleMode.Dpi;
             string testRootOverride = Environment.GetEnvironmentVariable("NETSTUCK_TEST_ROOT");
             string stateOverride = Environment.GetEnvironmentVariable("NETSTUCK_TEST_STATE_PATH");
@@ -251,6 +252,7 @@ namespace NetStuck
             EnableCtrlWheelZoom(this);
             InitializeResponsiveLayout();
             ResumeLayout(true);
+            ApplyZoom();
             FormClosing += OnFormClosing;
             Shown += async delegate
             {
@@ -758,7 +760,14 @@ namespace NetStuck
                 Font = new Font("Segoe UI", 10),
                 BackColor = Surface,
                 Text =
-                    "NetStuck v.1.3.3 (Current)\r\n" +
+                    "NetStuck v.1.3.4 (Current)\r\n" +
+                    "Responsive layouts and more comfortable Light / Dark themes\r\n\r\n" +
+                    "- Keep Ping and Collector actions visible while settings scroll.\r\n" +
+                    "- Improve search labels, wrapped headers, dropdown sizing and dialogs.\r\n" +
+                    "- Use neutral dark surfaces and clearer text/status contrast.\r\n" +
+                    "- Restore text zoom correctly and fit existing/new table rows.\r\n" +
+                    "- Real Windows Scale 125/150/200% acceptance remains unverified.\r\n\r\n" +
+                    "NetStuck v.1.3.3\r\n" +
                     "Light and Dark themes\r\n\r\n" +
                     "- Choose Theme: Light / Dark in the application header.\r\n" +
                     "- Theme-aware text, status colors, grids, selection and dropdowns.\r\n" +
@@ -1886,8 +1895,29 @@ namespace NetStuck
         Panel SectionHeader(string title, string subtitle)
         {
             var panel = new Panel { Dock = DockStyle.Top, Height = UiTokens.SectionHeaderHeight, BackColor = Surface, AccessibleName = title + " section", AccessibleDescription = subtitle, AccessibleRole = AccessibleRole.Grouping, TabStop = false };
-            panel.Controls.Add(new Label { Text = title, Font = new Font("Segoe UI Semibold", UiTokens.SectionTitleFontSize), ForeColor = TextMain, AutoSize = true, Location = new Point(0, UiTokens.SpaceXs), AccessibleName = title, AccessibleRole = AccessibleRole.StaticText, TabStop = false });
-            panel.Controls.Add(new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(900, 0), Location = new Point(1, 29), AccessibleName = title + " description", AccessibleDescription = subtitle, AccessibleRole = AccessibleRole.StaticText, TabStop = false });
+            var heading = new Label { Text = title, Font = new Font("Segoe UI Semibold", UiTokens.SectionTitleFontSize), ForeColor = TextMain, AutoSize = true, AccessibleName = title, AccessibleRole = AccessibleRole.StaticText, TabStop = false };
+            var description = new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, AccessibleName = title + " description", AccessibleDescription = subtitle, AccessibleRole = AccessibleRole.StaticText, TabStop = false };
+            panel.Controls.Add(heading); panel.Controls.Add(description);
+            bool arranging = false;
+            Action arrange = delegate
+            {
+                if (arranging || panel.IsDisposed || panel.ClientSize.Width <= 0) return;
+                arranging = true;
+                try
+                {
+                    int gap = LayoutPixels(UiTokens.SpaceXs);
+                    heading.MaximumSize = description.MaximumSize = new Size(Math.Max(1, panel.ClientSize.Width), 0);
+                    heading.Location = new Point(0, gap);
+                    description.Location = new Point(0, heading.Bottom + gap);
+                    panel.Height = Math.Max(LayoutPixels(UiTokens.SectionHeaderHeight), description.Bottom + LayoutPixels(UiTokens.SpaceSm));
+                }
+                finally { arranging = false; }
+            };
+            panel.SizeChanged += delegate { arrange(); };
+            heading.FontChanged += delegate { arrange(); };
+            description.FontChanged += delegate { arrange(); };
+            description.TextChanged += delegate { arrange(); };
+            arrange();
             return panel;
         }
 
@@ -1910,7 +1940,11 @@ namespace NetStuck
                 TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(0), AutoEllipsis = true,
                 UseCompatibleTextRendering = false
             };
-            button.FlatAppearance.BorderColor = primary ? Accent : Border; button.FlatAppearance.BorderSize = 1; return button;
+            button.AccessibleName = UiAccessibility.ActionName(text);
+            button.FlatAppearance.BorderColor = primary ? Accent : UiTokens.Border; button.FlatAppearance.BorderSize = 1;
+            button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(29, 78, 216) : UiTokens.HoverSurface;
+            button.FlatAppearance.MouseDownBackColor = primary ? Color.FromArgb(30, 64, 175) : UiTokens.PressedSurface;
+            return button;
         }
 
         Panel CompactActionBar(Button action)
@@ -1923,7 +1957,10 @@ namespace NetStuck
 
         Button DangerButton(string text, int width)
         {
-            var button = ActionButton(text, false, width); button.ForeColor = Danger; button.FlatAppearance.BorderColor = Color.FromArgb(252, 165, 165); return button;
+            var button = ActionButton(text, false, width); button.ForeColor = UiTokens.Destructive; button.FlatAppearance.BorderColor = UiTokens.Destructive;
+            button.FlatAppearance.MouseOverBackColor = UiTokens.ErrorSurface;
+            button.FlatAppearance.MouseDownBackColor = UiPalette.Background(Color.FromArgb(254, 226, 226));
+            return button;
         }
 
         Button DestructiveButton(string text, int width)
@@ -1941,6 +1978,7 @@ namespace NetStuck
             field.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
             field.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             input.Dock = DockStyle.Fill;
+            if (String.IsNullOrWhiteSpace(input.AccessibleName)) input.AccessibleName = label;
             field.Controls.Add(new Label { Text = label, Dock = DockStyle.Fill, ForeColor = TextMuted, TextAlign = ContentAlignment.BottomLeft, AccessibleName = label + " label", AccessibleRole = AccessibleRole.StaticText, TabStop = false }, 0, 0);
             field.Controls.Add(input, 0, 1);
             return field;
@@ -1988,18 +2026,30 @@ namespace NetStuck
         {
             using (var dialog = new Form { Text = title, Width = 430, Height = 180, StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, ShowInTaskbar = false, BackColor = Canvas, Font = Font })
             {
-                var prompt = new Label { Text = label, AutoSize = true, Location = new Point(20, 18), ForeColor = TextMain };
-                var input = new TextBox { Text = initial ?? "", Location = new Point(20, 45), Width = 374 };
-                var ok = ActionButton("Save", true, 100); ok.Location = new Point(186, 88); ok.DialogResult = DialogResult.OK;
-                var cancel = ActionButton("Cancel", false, 100); cancel.Location = new Point(294, 88); cancel.DialogResult = DialogResult.Cancel;
-                dialog.Controls.AddRange(new Control[] { prompt, input, ok, cancel }); dialog.AcceptButton = ok; dialog.CancelButton = cancel;
+                dialog.AutoSize = true; dialog.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+                var layout = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 1, RowCount = 3, Padding = new Padding(16) };
+                layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+                for (int row = 0; row < 3; row++) layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                var prompt = new Label { Text = label, AutoSize = true, ForeColor = TextMain, Margin = new Padding(0, 0, 0, 8) };
+                var input = new TextBox { Text = initial ?? "", Dock = DockStyle.Fill, MinimumSize = new Size(374, 0), AccessibleName = label, Margin = new Padding(0, 0, 0, 12) };
+                var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Margin = new Padding(0) };
+                var ok = ActionButton("Save", true, 100); ok.DialogResult = DialogResult.OK;
+                var cancel = ActionButton("Cancel", false, 100); cancel.DialogResult = DialogResult.Cancel;
+                bar.Controls.Add(cancel); bar.Controls.Add(ok);
+                layout.Controls.Add(prompt, 0, 0); layout.Controls.Add(input, 0, 1); layout.Controls.Add(bar, 0, 2);
+                dialog.Controls.Add(layout); dialog.AcceptButton = ok; dialog.CancelButton = cancel;
                 dialog.Shown += delegate { input.Focus(); input.SelectAll(); };
                 ApplyTheme(dialog);
                 return dialog.ShowDialog(this) == DialogResult.OK ? input.Text.Trim() : null;
             }
         }
 
-        void ApplyTheme(Control root) { BindTheme(root); }
+        void ApplyTheme(Control root)
+        {
+            var dialog = root as Form;
+            if (dialog != null && dialog != this) PrepareDialog(dialog);
+            BindTheme(root);
+        }
 
         void OnFormClosing(object sender, FormClosingEventArgs e)
         {
@@ -2026,6 +2076,12 @@ namespace NetStuck
             {
                 gridBoldFont.Dispose();
                 gridBoldFont = null;
+            }
+            if (disposing)
+            {
+                foreach (Font font in zoomOwnedFonts.Values) font.Dispose();
+                foreach (Font font in zoomOwnedHeaderFonts.Values) font.Dispose();
+                zoomOwnedFonts.Clear(); zoomOwnedHeaderFonts.Clear();
             }
         }
 

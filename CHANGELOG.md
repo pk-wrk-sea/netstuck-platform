@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git tags and `v.MAJOR.MINOR.PATCH` in the legacy application UI.
 
+## v1.3.4 — Responsive layouts and theme readability, 2026-10-05
+
+- Keep Live Ping and Config Collector operations visible outside scrollable settings; size page workspaces from the available client area.
+- Add persistent search/credential labels, wrapped card descriptions, content-sized dialog actions and font-aware dropdown sizing.
+- Use neutral dark surfaces, clearer muted/semantic text and consistent enabled/disabled action contrast in Light/Dark.
+- Correct restored text zoom and resize existing/new table rows; dispose owned zoom fonts.
+- Add 91 focused layout/theme regression checks across eight pages, both themes and normal/minimum sizes; preserve existing polling, dual Traceroute and Collector behavior.
+- Run fresh local regression, deterministic capture, Windows CI and packaged startup verification for this release. Real Windows Scale 125/150/200%, mixed-DPI and accessibility-mode acceptance remain unverified; see the release report.
+- Stage automated release uploads as drafts and verify packaged startup; published assets cannot be overwritten by a workflow rerun.
+- Wait for rendered pixels as well as geometry before snapshot capture; retain the strict five-run screenshot comparison.
+
 ## v1.3.3 — Light and Dark themes, 2026-09-23
 
 - Added a Light / Dark selector in the application header with a locally persisted preference. Older state files default to Light.

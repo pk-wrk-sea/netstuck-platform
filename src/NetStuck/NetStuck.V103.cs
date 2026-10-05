@@ -285,10 +285,10 @@ namespace NetStuck
             profilePanel.Controls.Add(loadProfile, 0, 1); profilePanel.Controls.Add(saveProfile, 1, 1); profilePanel.Controls.Add(deleteProfile, 2, 1);
             profilePanel.Controls.Add(profileInfo, 0, 2); profilePanel.SetColumnSpan(profileInfo, 3);
 
-            var settings = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 286, ColumnCount = 2, RowCount = 8, Padding = new Padding(0, 8, 0, 0) };
+            var settings = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 241, ColumnCount = 2, RowCount = 7, Padding = new Padding(0, 8, 0, 0) };
             settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
             settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
-            foreach (int height in new[] { 31, 31, 31, 34, 31, 31, 38, 45 }) settings.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
+            foreach (int height in new[] { 31, 31, 31, 34, 31, 31, 38 }) settings.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
 
             pingInterval = NumberField(250, 60000, 1000, 250);
             pingTimeout = NumberField(100, 30000, 1500, 100);
@@ -316,32 +316,33 @@ namespace NetStuck
             dnsLine.Controls.Add(pingUseCustomDns, 0, 0); dnsLine.Controls.Add(pingDnsServer, 1, 0);
             settings.Controls.Add(dnsLine, 0, 6); settings.SetColumnSpan(dnsLine, 2);
 
-            var actionBar = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Padding = new Padding(0, 4, 0, 2) };
+            var actionBar = new FlowLayoutPanel { Name = "pingOperationActions", Dock = DockStyle.Bottom, Height = 45, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Padding = new Padding(0, 4, 0, 2) };
             pingStartButton = ActionButton("START", true, 104);
             pingPauseButton = ActionButton("PAUSE", false, 104); pingPauseButton.Enabled = false; pingPauseButton.ForeColor = TextMain;
             pingStopButton = DangerButton("STOP", 104); pingStopButton.Enabled = false;
             pingStartButton.Click += StartPing; pingPauseButton.Click += TogglePingPause; pingStopButton.Click += RequestPingStop;
             actionBar.Controls.AddRange(new Control[] { pingStartButton, pingPauseButton, pingStopButton });
-            settings.Controls.Add(actionBar, 0, 7); settings.SetColumnSpan(actionBar, 2);
 
             inputCard.Controls.Add(targetInput);
             inputCard.Controls.Add(targetHint);
             inputCard.Controls.Add(settings);
             inputCard.Controls.Add(profilePanel);
             inputCard.Controls.Add(inputHeader);
+            inputCard.Controls.Add(actionBar);
+            ProtectInputCard(inputCard, actionBar, 575);
             split.Panel1.Controls.Add(inputCard);
 
             var resultCard = Card();
-            var toolbar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 91, ColumnCount = 1, RowCount = 2, Padding = new Padding(0, 5, 0, 5) };
+            var toolbar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 96, ColumnCount = 1, RowCount = 3, Padding = new Padding(0, 2, 0, 2) };
             toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
+            toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 22)); toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 31)); toolbar.RowStyles.Add(new RowStyle(SizeType.Absolute, 39));
             var searchLine = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
             searchLine.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); searchLine.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
-            var toolbarActions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 4, 0, 0) };
-            pingSearch = new TextBox { Dock = DockStyle.Fill };
+            var toolbarActions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 2, 0, 0) };
+            pingSearch = new TextBox { Dock = DockStyle.Fill, AccessibleName = "Live Ping search", AccessibleDescription = "Filter host, description, IP, status or error." };
             Cue(pingSearch, "Filter host, description, IP, status or error");
             pingSearch.TextChanged += delegate { ApplyPingFilter(); };
-            pingStatusFilter = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
+            pingStatusFilter = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill, AccessibleName = "Live Ping status filter" };
             pingStatusFilter.Items.AddRange(new object[] { "All status", "ICMP OK", "Connected", "Unreachable", "TCP Timeout", "Waiting" }); pingStatusFilter.SelectedIndex = 0;
             pingStatusFilter.SelectedIndexChanged += delegate { ApplyPingFilter(); };
             var copy = ActionButton("Copy", false, 104); var export = ActionButton("Export CSV", false, 104); var columns = ActionButton("Columns", false, 104);
@@ -350,7 +351,8 @@ namespace NetStuck
             columns.Click += ShowPingColumnChooser; cards.Click += delegate { TogglePingCards(cards); };
             searchLine.Controls.Add(pingSearch, 0, 0); searchLine.Controls.Add(pingStatusFilter, 1, 0);
             toolbarActions.Controls.AddRange(new Control[] { clear, cards, columns, export, copy });
-            toolbar.Controls.Add(searchLine, 0, 0); toolbar.Controls.Add(toolbarActions, 0, 1);
+            toolbar.Controls.Add(FieldLabel("Search results / status"), 0, 0);
+            toolbar.Controls.Add(searchLine, 0, 1); toolbar.Controls.Add(toolbarActions, 0, 2);
 
             pingTable = CreatePingTableV103();
             pingSource = new BindingSource { DataSource = pingTable };
@@ -385,7 +387,7 @@ namespace NetStuck
             AddGridColumn(pingHistoryGrid, "Latency", "LatencyMs", 90); AddGridColumn(pingHistoryGrid, "TTL", "Ttl", 65); AddGridColumn(pingHistoryGrid, "Result", "Result", 105);
             AddGridColumn(pingHistoryGrid, "Sequence", "Sequence", 78); AddGridColumn(pingHistoryGrid, "Detail", "Detail", 310);
             pingHistoryGrid.DataSource = pingHistorySource; pingHistoryGrid.CellFormatting += FormatPingHistoryCell; pingHistoryGrid.KeyDown += GridCopyShortcut;
-            var historyBar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 42, ColumnCount = 2, Padding = new Padding(2, 4, 2, 4) };
+            var historyBar = new TableLayoutPanel { Dock = DockStyle.Top, Height = 36, ColumnCount = 2, Padding = new Padding(2, 0, 2, 0) };
             historyBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); historyBar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
             pingHistoryTitle = new Label { Text = "PING HISTORY  |  click a target row above to view", Dock = DockStyle.Fill, ForeColor = TextMuted, Font = new Font("Segoe UI Semibold", 8.5f), TextAlign = ContentAlignment.MiddleLeft };
             historyBar.Controls.Add(pingHistoryTitle, 0, 0);
@@ -395,7 +397,7 @@ namespace NetStuck
             resultCard.Controls.Add(pingResultSplit); resultCard.Controls.Add(toolbar); resultCard.Controls.Add(SectionHeader("Realtime results", "Click once to highlight a full row; sort, filter, reorder and resize columns"));
             split.Panel2.Controls.Add(resultCard);
             pingRoot.Controls.Add(metrics, 0, 0); pingRoot.Controls.Add(split, 0, 1); page.Controls.Add(pingRoot);
-            ConfigureSplit(page, split, 395, 340, 600); ConfigureHorizontalSplit(resultCard, pingResultSplit, 330, 220, 190);
+            ConfigureSplit(page, split, 395, 340, 600); ConfigureHorizontalSplit(resultCard, pingResultSplit, 330, 90, 128);
         }
 
         void BuildTracePage()
@@ -486,7 +488,7 @@ namespace NetStuck
             actionFields.Controls.AddRange(new Control[] { session.Start, session.Pause, session.Stop });
             controls.Controls.Add(primaryFields, 0, 0); controls.Controls.Add(serviceFields, 0, 1); controls.Controls.Add(actionFields, 0, 2);
 
-            var info = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)), Padding = new Padding(8, 7, 8, 0), WrapContents = false };
+            var info = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BackColor = UiPalette.Background(Color.FromArgb(248, 250, 252)), Padding = new Padding(8, 7, 8, 7), WrapContents = true };
             session.Cycle = new Label { Text = "Cycle: 0", AutoSize = true, ForeColor = TextMuted };
             session.Destination = new Label { Text = "Destination: -", AutoSize = true, ForeColor = TextMuted, Margin = new Padding(22, 0, 0, 0) };
             session.State = new Label { Text = "Target: Waiting", AutoSize = true, ForeColor = Warning, Font = new Font("Segoe UI Semibold", 9), Margin = new Padding(22, 0, 0, 0) };

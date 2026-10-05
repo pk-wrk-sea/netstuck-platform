@@ -1,12 +1,12 @@
 # Versioning
 
-NetStuck uses semantic versions for repository tags and releases. The current theme release target is:
+NetStuck uses semantic versions for repository tags and releases. The current UI/layout release target is:
 
-- Git tag/release: `v1.3.3`
-- Legacy UI display: `v.1.3.3`
-- Assembly/File version: `1.3.3.0`
+- Git tag/release: `v1.3.4`
+- Legacy UI display: `v.1.3.4`
+- Assembly/File version: `1.3.4.0`
 
-v1.3.3 adds Light and Dark theme selection on top of published v1.3.2. Tests and CI are skipped following the owner instruction; normal release gates remain unchanged. It is published as normal Latest for discovery by the existing updater.
+v1.3.4 improves responsive WinForms layouts, text zoom and Light/Dark readability on top of published v1.3.3. Fresh local regression, CI, package integrity and startup verification are required. Real Windows Scale 125/150/200%, mixed-DPI and accessibility acceptance remain separately documented manual boundaries. The owner requested publication after the UI improvement report; this instruction does not convert unperformed checks into PASS.
 
 When a version upgrade is explicitly requested, update all of these locations together:
 

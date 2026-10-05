@@ -9,7 +9,7 @@ on:
       version:
         description: Existing NetStuck tag version without the leading v
         required: true
-        default: '1.3.3'
+        default: '1.3.4'
 
 permissions:
   contents: write
@@ -35,7 +35,7 @@ jobs:
           } elseif ($env:GITHUB_REF_TYPE -eq 'tag') {
             $version = $env:GITHUB_REF_NAME -replace '^v', ''
           } else {
-            $version = '1.3.3'
+            $version = '1.3.4'
           }
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid version: $version" }
           "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -58,7 +58,11 @@ jobs:
         shell: powershell
         run: .\scripts\Package-NetStuck.ps1 -Version $env:VERSION -PlinkPath $env:PLINK_PATH
 
-      - name: Create or update GitHub Release
+      - name: Verify packaged startup
+        shell: powershell
+        run: .\scripts\Test-PackagedSmoke.ps1 -ExecutablePath ".\artifacts\release\NetStuck-v.$env:VERSION\NetStuck.exe"
+
+      - name: Stage draft GitHub Release
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
@@ -71,9 +75,11 @@ jobs:
           $releaseTags = @(gh release list --limit 100 --json tagName --jq '.[].tagName' --repo $env:GITHUB_REPOSITORY)
           if ($LASTEXITCODE -ne 0) { throw 'Could not list GitHub Releases.' }
           if ($releaseTags -contains $tag) {
+            $draft = gh release view $tag --json isDraft --jq '.isDraft' --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -ne 0 -or $draft -ne 'true') { throw 'Refusing to replace an already published release.' }
             gh release upload $tag $zip $shaFile --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag $zip $shaFile --verify-tag --title "NetStuck v$env:VERSION" --notes "Validated portable Windows release. Download the ZIP as one folder; SHA256 is attached separately and included inside the package." --repo $env:GITHUB_REPOSITORY
+            gh release create $tag $zip $shaFile --verify-tag --draft --title "NetStuck v$env:VERSION" --notes "Portable Windows candidate. Download verification and release acceptance are required before publication; automated tests do not prove manual DPI acceptance." --repo $env:GITHUB_REPOSITORY
           }
           if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }
 
@@ -84,4 +90,7 @@ jobs:
           path: |
             artifacts/release/NetStuck-v.${{ env.VERSION }}.zip
             artifacts/release/NetStuck-v.${{ env.VERSION }}.zip.sha256.txt
+            artifacts/release/NetStuck-v.${{ env.VERSION }}.provenance.json
+            artifacts/test/package-test-summary.json
+            artifacts/build/NetStuck.build-provenance.json
           if-no-files-found: error

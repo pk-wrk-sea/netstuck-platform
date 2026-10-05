@@ -176,17 +176,18 @@ namespace NetStuck
             {
                 var hint = new Label
                 {
-                    Dock = DockStyle.Top, Height = 58, ForeColor = TextMuted,
+                    Dock = DockStyle.Top, AutoSize = true, ForeColor = TextMuted,
                     Text = "One mapping per line: 10.10.10.10 Firewall-User-Inside\r\nThe description appears automatically whenever that hop is detected.",
                     Padding = new Padding(12, 10, 12, 4)
                 };
+                dialog.ClientSizeChanged += delegate { hint.MaximumSize = new Size(Math.Max(1, dialog.ClientSize.Width), 0); };
                 var input = new TextBox
                 {
                     Dock = DockStyle.Fill, Multiline = true, AcceptsTab = true, WordWrap = false,
-                    ScrollBars = ScrollBars.Both, Font = new Font("Consolas", 10f),
+                    ScrollBars = ScrollBars.Both, Font = new Font("Consolas", 10f), AccessibleName = "Hop descriptions, one mapping per line",
                     Text = traceHopInfoText ?? ""
                 };
-                var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 52, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
+                var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
                 var save = ActionButton("Save mappings", true, 120); save.DialogResult = DialogResult.OK;
                 var cancel = ActionButton("Cancel", false, 90); cancel.DialogResult = DialogResult.Cancel;
                 bar.Controls.Add(save); bar.Controls.Add(cancel);

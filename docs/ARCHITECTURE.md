@@ -49,6 +49,16 @@ Most behavior lives in one `partial MainForm`, split by historical feature layer
 5. Large output streams to a temporary capture. A bounded tail is retained for prompt recognition and a bounded terminal preview is drained in batches.
 6. Successful captures finalize to TXT and optional JSON; error export contains only failed rows.
 
+## Display and layout
+
+The main form and custom dialogs use a 96-DPI design baseline with WinForms DPI autoscaling. The existing system-DPI awareness and .NET Framework 4.x compatibility boundary remain in place. `FitDesktop` clamps the window to the current working area and retains the nominal 1100×700 minimum when that working area can accommodate it.
+
+Each page has a scrollable fallback canvas sized from available client space. Live Ping and Config Collector place operation buttons outside their independently scrollable input content, so long settings do not push Start/Stop below the visible card. Section headers measure and wrap their descriptions; Traceroute's information strip wraps related status/actions together.
+
+Ctrl+wheel zoom applies to text/result controls. Baseline font sizes are recorded before applying restored zoom. Grid row templates, existing rows and headers are resized on a zoom change; live probe updates continue to use the existing batching path. Fonts created by zoom are owned and disposed by the form.
+
+Light/Dark colors preserve semantic roles and reversible state. Filled actions retain strong contrast, while cards use quiet decorative borders and input/action boundaries remain visible. Native window frames, scrollbars and some control chrome still follow Windows; native per-monitor dark rendering is not claimed.
+
 ## Persistence
 
 The application writes these files under `%LOCALAPPDATA%\NetStuck`:
