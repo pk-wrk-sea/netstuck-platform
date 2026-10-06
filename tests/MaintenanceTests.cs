@@ -107,7 +107,7 @@ static class MaintenanceTests
             using(var form=new MainForm())
             {
                 form.AutoScaleMode=AutoScaleMode.None; form.Show(); Pump();
-                var all=Flat(form).ToArray(); var tabs=all.OfType<TabControl>().First(t=>t.TabCount==8);
+                var all=Flat(form).ToArray(); var tabs=all.OfType<TabControl>().First(t=>t.Name=="mainNavigationTabs");
                 Check("update check and install actions present",all.OfType<Button>().Any(b=>b.Name=="checkForUpdates") && all.OfType<Button>().Any(b=>b.Name=="updateNow" && !b.Enabled));
                 Check("independent Traceroute column actions present",all.OfType<Button>().Count(b=>b.Name.StartsWith("traceColumns"))==2);
                 var trace=(DataGridView)typeof(MainForm).GetField("traceGrid",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);

@@ -58,12 +58,12 @@ static class FeatureTests
             Check("Config Collector remains and Log Sanitizer menu is removed", tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Config Collector")
                 && !tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Log Sanitizer"));
             FileVersionInfo runtimeVersion = FileVersionInfo.GetVersionInfo(typeof(MainForm).Assembly.Location);
-            Check("v.1.3.5 runtime and Updates menu exist", typeof(MainForm).Assembly.GetName().Version.ToString() == "1.3.5.0"
-                && runtimeVersion.FileVersion == "1.3.5.0"
-                && runtimeVersion.ProductVersion == "1.3.5.0"
-                && controls.OfType<Label>().Any(l => l.Name == "applicationVersion" && l.Text == "v.1.3.5")
+            Check("v.2.0.0 runtime and Updates menu exist", typeof(MainForm).Assembly.GetName().Version.ToString() == "2.0.0.0"
+                && runtimeVersion.FileVersion == "2.0.0.0"
+                && runtimeVersion.ProductVersion == "2.0.0.0"
+                && controls.OfType<Label>().Any(l => l.Name == "applicationVersion" && l.Text == "v.2.0.0")
                 && tabs.TabPages.Cast<TabPage>().Any(t => t.Text == "Updates")
-                && controls.OfType<TextBox>().Any(t => t.ReadOnly && t.Text.Contains("NetStuck v.1.3.5 (Current)") && t.Text.Contains("NetStuck v.1.2.3")));
+                && controls.OfType<TextBox>().Any(t => t.ReadOnly && t.Text.Contains("NetStuck v.2.0.0 (Current)") && t.Text.Contains("NetStuck v.1.2.3")));
             Check("WinMTR text removed", !controls.Any(c => c.Text.IndexOf("WinMTR", StringComparison.OrdinalIgnoreCase) >= 0));
             StatusStrip globalStatus = controls.OfType<StatusStrip>().First();
             Check("global status shows local and public IP", globalStatus.Items.Cast<ToolStripItem>().Any(i => i.Text.StartsWith("My Local IP:"))
@@ -100,6 +100,7 @@ static class FeatureTests
             Button pingStart = (Button)Get(form, "pingStartButton");
             Button pingStop = (Button)Get(form, "pingStopButton");
             Check("Live Ping action buttons have equal stable widths", pingStart.Width == pingPause.Width && pingPause.Width == pingStop.Width);
+            if (Flat(tabs.SelectedTab).OfType<Button>().Any(b => b.Width != pingStart.Width)) Console.WriteLine("EVIDENCE Ping action widths: " + String.Join(", ", Flat(tabs.SelectedTab).OfType<Button>().Select(b => b.Text + "=" + b.Width)));
             Check("all Live Ping buttons match START width", Flat(tabs.SelectedTab).OfType<Button>().All(b => b.Width == pingStart.Width));
             Check("Live Ping running button states are explicit", pingStart.Text == "MONITORING" && pingPause.Text == "PAUSE" && pingStop.Text == "STOP NOW");
             Check("ICMP success status is protocol specific (" + Convert.ToString(((DataTable)Get(form, "pingTable")).Rows[0]["Status"]) + ")", Convert.ToString(((DataTable)Get(form, "pingTable")).Rows[0]["Status"]) == "ICMP OK");
@@ -240,7 +241,8 @@ static class FeatureTests
                 input.BackColor == Color.White && input.Parent.BackColor == Color.White));
             form.Width = 1100; Pump(150);
             SplitContainer narrowTraceSplit = Flat(traceSessions.TabPages[0]).OfType<SplitContainer>().First(split => split.Orientation == Orientation.Vertical);
-            Check("Traceroute remains separated without overlap at minimum window width", narrowTraceSplit.Panel1.ClientSize.Width >= 690
+            Check("Traceroute remains separated without overlap at minimum window width", traceSessionTarget.Width >= 160
+                && new Control[] { traceMaxHops, traceTimeout, traceInterval }.All(c => c.Width >= 75)
                 && !timingPanel.Bounds.IntersectsWith(traceStartState.Parent.Bounds));
             form.Width = 1460; Pump(150);
             Check("Traceroute Protocol Port and Packet Size fields are balanced", traceProtocol.Parent.Parent.Width == tracePort.Parent.Parent.Width
@@ -420,7 +422,7 @@ static class FeatureTests
             Invoke(form, "SaveAppState");
             string savedState = File.ReadAllText(state);
             Check("collector passwords never persisted", !savedState.Contains("DO_NOT_SAVE_THIS") && !savedState.Contains("ALSO_SECRET") && !savedState.Contains("ENABLE_SECRET"));
-            Check("v.1.3.5 retains state schema 6", savedState.Contains("\"StateVersion\":6"));
+            Check("v.2.0.0 retains state schema 6", savedState.Contains("\"StateVersion\":6"));
 
             IDictionary providerEntries = (IDictionary)Get(form, "traceProviderEntriesV120");
             IDictionary dnsEntries = (IDictionary)Get(form, "traceDnsEntriesV120");

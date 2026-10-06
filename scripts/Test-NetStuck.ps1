@@ -24,6 +24,8 @@ $requiredSuiteMinimums = [ordered]@{
     'TracerouteLifecycleTests.exe' = 32
     'UiFoundationTests.exe' = 63
     'UiLayoutTests.exe' = 91
+    'UiV2Tests.exe' = 460
+    'VersionRecoveryTests.exe' = 27
     'PerformanceTests.exe' = 10
     'PollingCadenceTests.exe' = 3
     'OvernightSoakTests.exe' = 8
@@ -505,13 +507,15 @@ try {
     $currentStage = 'Test host compilation'
     Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:library', '/optimize+', "/out:$uiLibrary") + $frameworkReferences + $appSources)
     Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot 'FakePlink.exe')") + $frameworkReferences + (Join-Path $testRoot 'FakePlink.cs'))
+    Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot 'LegacyVersionStub.exe')") + $frameworkReferences + (Join-Path $testRoot 'LegacyVersionStub.cs'))
     Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot 'NetOpsCoreTests.exe')") + $frameworkReferences + (Join-Path $sourceRoot 'NetOpsCore.cs') + (Join-Path $testRoot 'NetOpsCoreTests.cs'))
     $uiTestReferences = $frameworkReferences + "/reference:$uiLibrary"
-    foreach ($name in @('FeatureTests', 'MaintenanceTests', 'TracerouteLifecycleTests', 'UiFoundationTests', 'UiLayoutTests', 'PerformanceTests', 'PollingCadenceTests', 'OvernightSoakTests')) {
+    foreach ($name in @('FeatureTests', 'MaintenanceTests', 'TracerouteLifecycleTests', 'UiFoundationTests', 'UiLayoutTests', 'UiV2Tests', 'VersionRecoveryTests', 'PerformanceTests', 'PollingCadenceTests', 'OvernightSoakTests')) {
         # Layout tests share production DPI awareness; an unaware harness would
         # keep measuring virtualized 96-DPI coordinates on a scaled desktop.
         $testManifestArguments = @()
-        if ($name -eq 'UiLayoutTests') { $testManifestArguments = @("/win32manifest:$(Join-Path $sourceRoot 'app.manifest')") }
+        if ($name -eq 'UiLayoutTests' -or $name -eq 'UiV2Tests') { $testManifestArguments = @("/win32manifest:$(Join-Path $sourceRoot 'app.manifest')") }
+        if ($name -eq 'UiV2Tests') { $testManifestArguments += "/reference:$(Join-Path (Split-Path $compiler -Parent) 'Accessibility.dll')" }
         Invoke-Compiler -Arguments ($compilerIsolationArguments + @('/target:exe', '/optimize+', "/out:$(Join-Path $outputRoot ($name + '.exe'))") + $testManifestArguments + $uiTestReferences + (Join-Path $testRoot ($name + '.cs')))
     }
     Add-StageResult -Name $currentStage -Status 'Passed' -NativeExitCode 0 -InfrastructureFailures 0 -Detail 'All production and test hosts compiled.'
@@ -541,6 +545,10 @@ try {
     Invoke-TestExecutable 'UiFoundationTests.exe'
     $currentStage = 'UiLayoutTests.exe'
     Invoke-TestExecutable 'UiLayoutTests.exe'
+    $currentStage = 'UiV2Tests.exe'
+    Invoke-TestExecutable 'UiV2Tests.exe'
+    $currentStage = 'VersionRecoveryTests.exe'
+    Invoke-TestExecutable 'VersionRecoveryTests.exe'
     $currentStage = 'PerformanceTests.exe'
     Invoke-TestExecutable 'PerformanceTests.exe'
     $currentStage = 'PollingCadenceTests.exe'

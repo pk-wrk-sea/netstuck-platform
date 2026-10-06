@@ -1,10 +1,10 @@
 # NetStuck
 
-NetStuck is a portable Windows network diagnostics and configuration-collection application targeting .NET Framework 4.x. **v1.3.5 improves responsive layouts, text zoom and Light/Dark readability**.
+NetStuck is a portable Windows network diagnostics and configuration-collection application targeting .NET Framework 4.x. **v2.0.0 adds sidebar navigation, a new Ping layout, Light/Dark themes and GitHub downgrade recovery**.
 
 Choose **Theme → Dark** (or Light) in the application header. The preference is saved locally and restored after restart. Text, status colors, tables, selection and application dialogs follow the chosen palette. Native Windows file/message dialogs and system chrome follow Windows.
 
-Ping and Collector operations remain visible while settings scroll. Search and credential fields have persistent labels; headers, dialogs, dropdowns and zoomed table rows fit their content. See the [UI audit](docs/UI_RESOLUTION_THEME_IMPROVEMENT_REPORT.md) and [v1.3.5 release verification](docs/releases/v1.3.5/RELEASE_REPORT.md). Real Windows Scale 125/150/200%, mixed-DPI monitors and accessibility modes remain unverified.
+Ping and Collector operations remain visible while settings scroll. Search and credential fields have persistent labels; headers, dialogs, dropdowns and zoomed table rows fit their content. See the [V2 implementation report](docs/V2_UI_IMPLEMENTATION_REPORT.md). Real Windows Scale 125/150/200%, mixed-DPI monitors and accessibility modes remain unverified.
 
 ## Features
 
@@ -16,11 +16,12 @@ Ping and Collector operations remain visible while settings scroll. Search and c
 - Config Collector: concurrent SSH/Telnet collection, AUTH1/AUTH2 fallback, streamed TXT/JSON output and error CSV export.
 
 - Updates: daily optional stable-release checks, manual **Check for updates**, last-check time and **Update now**. Downloads the complete GitHub ZIP, validates checksums, replaces package files after exit, retains a recovery backup and restarts. Stop network work before installation. See [update and recovery details](docs/UPDATES.md).
-- UI: NS circuit icon, full-height column drag guides, independent Traceroute column visibility and scrollable workspaces on small displays.
+- Version recovery: **Updates / recovery → Load previous versions → choose a version → Downgrade & restart**. Compatible older GitHub packages use the same integrity and backup rules. Ctrl+Shift+U opens recovery directly.
+- UI: sidebar navigation, Home, Settings, NS circuit icon, full-height column drag guides, independent Traceroute column visibility and scrollable workspaces on small displays.
 
 ## Repository baseline and candidate
 
-v1.3.5 builds on the published v1.3.3 snapshot. Run validation with both Windows PowerShell 5.1 and PowerShell 7:
+v2.0.0 preserves the functional v1.3.5 baseline. Run validation with both Windows PowerShell 5.1 and PowerShell 7:
 
 ```powershell
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10

@@ -529,7 +529,7 @@ namespace NetStuck
             resultSplit.Panel1.Controls.Add(collectorGrid); resultSplit.Panel2.Controls.Add(collectorTerminal);
             resultCard.Controls.Add(resultSplit); resultCard.Controls.Add(SectionHeader("Collection review + terminal", "Double-click a completed row to open the captured file"));
             outer.Panel1.Controls.Add(left); outer.Panel2.Controls.Add(resultCard); page.Controls.Add(outer);
-            ConfigureSplit(page, outer, 530, 460, 620);
+            ConfigureSplit(page, outer, 480, 440, 340);
             ConfigureHorizontalSplit(resultCard, resultSplit, 300, 180, 170);
         }
 

@@ -12,6 +12,7 @@ Most behavior lives in one `partial MainForm`, split by historical feature layer
 | --- | --- |
 | `src/NetStuck/NetOpsCore.cs` | Pure target parsing, CIDR expansion, MAC/IP extraction, subnet calculation, unit conversion and CSV escaping. |
 | `src/NetStuck/NetStuck.UiFoundation.cs` | Phase A shared tokens, action roles, accessibility helpers, read-only result-grid convention and semantic-state presenter used only by the shell, Calculators and Event Log pilots. |
+| `src/NetStuck/NetStuck.UiV2.cs` | Shared sidebar/page shell, V2 dimensions, Home/Settings, Ping composition, responsive actions/detail and accessibility/resource ownership. |
 | `src/NetStuck/NetStuck.cs` | Assembly/version values, application shell, shared controls/tables, profiles, MAC/WAN lookup, calculators, event log, export, theming and shutdown. |
 | `src/NetStuck/NetStuck.V103.cs` | Active Live Ping and dual-session Traceroute, cadence schedulers, ICMP/TCP/UDP probes, adaptive TTL, DNS/ISP cache, network identity and v1.2.3 layout. |
 | `src/NetStuck/NetStuck.Release1.cs` | Cross-cutting UI/performance behavior, double buffering/copy support, activity indicators, batched Ping UI updates, hop descriptions and DNS polling. |
@@ -86,7 +87,7 @@ Tests set `NETSTUCK_TEST_ROOT` to a unique OS-temporary root, which redirects `s
 
 ## Build and provenance boundary
 
-Production compilation uses the nine-file allowlist in `scripts/NetStuck.BuildProvenance.ps1`; directory discovery never adds a `.cs` file implicitly. `Build-NetStuck.ps1` invokes the .NET Framework compiler with `/noconfig` and `/nostdlib+`, then supplies `mscorlib` and every required framework reference by resolved absolute path. Raw hashes are recorded for repository inputs, references, compiler/runtime tools and the executable.
+Production compilation uses the ten-file allowlist in `scripts/NetStuck.BuildProvenance.ps1`; directory discovery never adds a `.cs` file implicitly. `Build-NetStuck.ps1` invokes the .NET Framework compiler with `/noconfig` and `/nostdlib+`, then supplies `mscorlib` and every required framework reference by resolved absolute path. Raw hashes are recorded for repository inputs, references, compiler/runtime tools and the executable.
 
 The portable identities are intentionally separate: repository source inputs, toolchain, normalized compiler invocation, explicit reference inputs, package inputs, decompressed package content and ZIP container. Actual and normalized compiler argv are emitted from one ordered argument specification, so each compiler option/path remains one atomic argument. Invocation identity uses a binary `v2` serialization containing a fixed ASCII header plus little-endian argument count, index and UTF-8 byte length followed by the UTF-8 bytes. Human-readable quoting is diagnostic only and is never fingerprint input. Canonical file manifests continue to use normalized relative paths, ordinal ordering, byte lengths, raw SHA-256 and UTF-8/LF records; absolute installation paths are diagnostic fields only.
 

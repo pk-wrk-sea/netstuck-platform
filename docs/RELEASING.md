@@ -26,16 +26,16 @@
 7. Package:
 
    ```powershell
-   .\scripts\Package-NetStuck.ps1 -Version 1.3.5 -PlinkPath C:\path\to\plink.exe
+   .\scripts\Package-NetStuck.ps1 -Version 2.0.0 -PlinkPath C:\path\to\plink.exe
    ```
 
 8. Re-verify `SHA256SUMS.txt` and run the fail-closed packaged smoke from the staged portable folder:
 
    ```powershell
-   .\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.1.3.5\NetStuck.exe
+   .\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.2.0.0\NetStuck.exe
    ```
 9. Commit, push and wait for Windows CI to pass.
-10. After release acceptance, create the annotated tag `v1.3.5`. The tag workflow tests/packages the tag, runs packaged startup and stages a draft GitHub Release with the ZIP and ZIP SHA256. It refuses to replace an already published release.
+10. After release acceptance, create the annotated tag `v2.0.0`. The tag workflow tests/packages the tag, runs packaged startup and stages a draft GitHub Release with the ZIP and ZIP SHA256. It refuses to replace an already published release.
 11. Download the draft assets into a clean directory, compare the asset/ZIP hashes, verify the exact portable inventory and per-file manifest, and repeat startup smoke before publishing as Latest. Keep unperformed manual acceptance checks explicit in the report and release notes; publication authorization is not an observed test PASS.
 
 ## Package requirements

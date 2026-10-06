@@ -30,6 +30,8 @@ NetStuck executables are currently unsigned. SHA256 manifests provide integrity 
 
 Updater accepts only stable release metadata from `pk-wrk-sea/netstuck-platform`, HTTPS GitHub/CDN hosts, the exact portable package inventory and matching SHA256/version. It executes the installed application copied as an updater, never a downloaded shell script. It runs as the current user and does not elevate. State and collector files are outside the package allowlist. Checksums detect corruption; compromise of the publishing account can also replace checksums and remains a risk while releases are unsigned.
 
+Version recovery requires an explicitly selected earlier version and confirmation. The helper revalidates downgrade direction and the expected installed version before replacement, retains the current application-file backup and shares the existing integrity/rollback checks. Latest-release checks never trigger a downgrade.
+
 ## Reporting
 
 The repository is currently public. Report a suspected vulnerability privately to the repository owner rather than opening a public issue containing device information or credentials.

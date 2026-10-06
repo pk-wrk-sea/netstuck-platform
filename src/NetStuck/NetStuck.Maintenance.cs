@@ -110,13 +110,14 @@ namespace NetStuck
             // Dense input cards scroll independently; results use the available height.
             foreach (TabPage page in tabs.TabPages)
             {
-                int width = 1020;
-                int height = page.Text == "Live Ping" ? 480 : page.Text == "Traceroute" ? 560 : page.Text == "Calculators" ? 460 : 360;
+                int width = page.Text == "Config Collector" ? 840 : page.Text == "Traceroute" ? 820 : 800;
+                int height = page.Text == "Live Ping" ? 460 : page.Text == "Traceroute" ? 560 : page.Text == "Calculators" ? 460 : 360;
                 ProtectPageCanvas(page, width, height);
             }
-            tabs.Multiline = true;
+            tabs.Multiline = false;
             Shown += delegate { FitDesktop(); };
             LocationChanged += delegate { if (Visible) FitDesktop(); };
+            SizeChanged += delegate { if (Visible) FitDesktop(); };
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DesktopSettingsChanged;
             FormClosed += delegate { Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DesktopSettingsChanged; };
         }
@@ -134,7 +135,7 @@ namespace NetStuck
             try
             {
                 Rectangle work = Screen.FromControl(this).WorkingArea;
-                MinimumSize = new Size(Math.Min(1100, work.Width), Math.Min(700, work.Height));
+                MinimumSize = new Size(Math.Min(LayoutPixels(1100), work.Width), Math.Min(LayoutPixels(700), work.Height));
                 if (WindowState == FormWindowState.Normal)
                 {
                     Size = new Size(Math.Min(Width, work.Width), Math.Min(Height, work.Height));
@@ -201,6 +202,7 @@ namespace NetStuck
         {
             bool arranging = false, initialized = false;
             double ratio = 0.5;
+            int fixedDistance = desired;
             Action arrange = delegate
             {
                 if (arranging || split.IsDisposed) return;
@@ -209,13 +211,15 @@ namespace NetStuck
                 arranging = true;
                 try
                 {
-                    int a = Math.Min(firstMin, available / 2), b = Math.Min(secondMin, available / 2);
-                    if (available >= firstMin + secondMin) { a = firstMin; b = secondMin; }
+                    int first = LayoutPixels(firstMin), second = LayoutPixels(secondMin);
+                    int a = Math.Min(first, available / 2), b = Math.Min(second, available / 2);
+                    if (available >= first + second) { a = first; b = second; }
                     split.Panel1MinSize = 0; split.Panel2MinSize = 0;
-                    int distance = initialized ? (int)(available * ratio) : (desired < 0 ? available / 2 : desired);
+                    int distance = split.FixedPanel == FixedPanel.Panel1 && desired >= 0 ? LayoutPixels(fixedDistance)
+                        : initialized ? (int)(available * ratio) : (desired < 0 ? available / 2 : LayoutPixels(desired));
                     split.SplitterDistance = Math.Max(a, Math.Min(available - b, distance));
                     split.Panel1MinSize = a; split.Panel2MinSize = b;
-                    if (!initialized && available >= firstMin + secondMin) { initialized = true; ratio = split.SplitterDistance / (double)available; }
+                    if (!initialized && available >= first + second) { initialized = true; ratio = split.SplitterDistance / (double)available; }
                 }
                 finally { arranging = false; }
             };
@@ -225,6 +229,8 @@ namespace NetStuck
                 if (arranging || !initialized) return;
                 int available = (split.Orientation == Orientation.Vertical ? split.Width : split.Height) - split.SplitterWidth;
                 if (available > 0) ratio = split.SplitterDistance / (double)available;
+                if (split.FixedPanel == FixedPanel.Panel1 && desired >= 0)
+                    fixedDistance = (int)Math.Round(split.SplitterDistance * 96.0 / (AutoScaleMode == AutoScaleMode.None ? 96 : CreateGraphicsDpiV2()));
             };
             arrange();
         }

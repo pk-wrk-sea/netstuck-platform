@@ -6,7 +6,7 @@
 .\scripts\Test-NetStuck.ps1 -SoakSeconds 10
 ```
 
-Run the command under both supported hosts (`powershell.exe` 5.1 and `pwsh.exe` 7.x). It compiles the app and every test harness into the ignored `artifacts` directory, then runs them from isolated state roots. The runner requires two stages and twelve suites exactly once, preserves native stdout/stderr/exit evidence, enforces the authoritative per-suite minimum map, and writes a schema-3 JSON summary whose verdict and process exit come from the same reconciliation result.
+Run the command under both supported hosts (`powershell.exe` 5.1 and `pwsh.exe` 7.x). It compiles the app and every test harness into the ignored `artifacts` directory, then runs them from isolated state roots. The V2 runner requires two stages and fourteen suites exactly once, preserves native stdout/stderr/exit evidence, enforces the authoritative per-suite minimum map, and writes a schema-3 JSON summary whose verdict and process exit come from the same reconciliation result.
 It deliberately switches the test console to BOM-free UTF-8 so the Collector integration test reproduces GitHub runner input behavior.
 The isolated state override also suppresses live startup NTP/Public-IP calls; this prevents shared-runner network variance and teardown races from contaminating UI cadence measurements.
 After all cadence resources are closed and results are flushed, that harness exits explicitly to avoid a legacy CLR/native Ping finalizer race observed only during Windows Server 2025 process teardown.
@@ -16,7 +16,7 @@ After all cadence resources are closed and results are flushed, that harness exi
 | Stage | Coverage |
 | --- | --- |
 | `Test host compilation` | Explicit test/app input compilation with `/noconfig`, `/nostdlib+` and resolved framework references. |
-| `Development build` | Production nine-source allowlist, build provenance output and `NetStuck.exe` version. |
+| `Development build` | Production ten-source allowlist, build provenance output and `NetStuck.exe` version. |
 
 | Suite | Coverage |
 | --- | --- |
@@ -26,14 +26,16 @@ After all cadence resources are closed and results are flushed, that harness exi
 | `MaintenanceTests` | Atomic persistence/recovery, stable release metadata, download cancellation, malicious ZIP rejection, file replacement/rollback/recovery, timezone, update actions, column selection and constrained workspaces. |
 | `TracerouteLifecycleTests` | Real MainForm route/event tables, UI-thread dispatch, zero/one/multiple delayed probes, fault during Stop, derived timeout failure, Stop timeout UI-context restoration, obsolete run, restart gating, page disposal, active close, exact task observation and fail-closed state cleanup. |
 | `UiFoundationTests` | Pilot token/state/action contracts, accessibility, semantic state, layout, interaction and privacy. |
-| `UiLayoutTests` | Eight pages at normal/minimum widths in Light/Dark, usable grids, action bounds, pinned operations, text contrast including Pause/Stop, dropdown metrics, wrapped bilingual headers, existing/new zoomed rows and restored zoom/theme. Compiles with the production DPI-awareness manifest and records process DPI; does not prove unvisited Scale settings. |
+| `UiLayoutTests` | Ten pages at normal/minimum widths in Light/Dark, usable grids, action bounds, pinned operations, text contrast including Pause/Stop, dropdown metrics, wrapped bilingual headers, existing/new zoomed rows and restored zoom/theme. Compiles with the production DPI-awareness manifest and records process DPI; does not prove unvisited Scale settings. |
+| `UiV2Tests` | 460 checks for preserved page indices, sidebar/Home/Settings navigation, accessible names/native roles, seven requested viewport sizes in both themes, pinned actions, scrolling, filter/columns, theme/zoom, recovery shortcut and disposal. |
+| `VersionRecoveryTests` | 27 checks for stable historical discovery, archived packages, explicit downgrade direction and installed identity, strict package integrity, full backup, exact-hash rollback/recovery and state preservation. |
 | `PerformanceTests` | Startup, `/24` load, UI dispatch, queue draining, dual Traceroute and memory. |
 | `PollingCadenceTests` | Bounded overlap and observable 250 ms versus 1000 ms cadence. |
 | `OvernightSoakTests` | Packet loss, route/DNS changes, TACACS rejection, VTY limits, terminal pressure, memory and UI responsiveness. |
 | `Capture-UiFoundations infrastructure` | Semantic/current-run evidence, pre/post-promotion rollback, forced rollback failure, exact screenshot inventory, PNG decoding/structure/order/CRC/truncation negatives and privacy. |
 | `Build provenance infrastructure` | Production allowlist drift, test-source exclusion, atomic actual/normalized argv, special-character vectors, binary serialization/order/content/display negatives, reference identity, binary drift, package-input drift, toolchain classification and checkout relocation. |
 
-The current authoritative unchanged-behavior corpus is `130/130`: NetOpsCore 16, Feature 93, Performance 10, PollingCadence 3 and OvernightSoak 8. The current complete runner inventory is `424` checks across twelve suites: runner 10, NetOpsCore 16, Feature 93, Maintenance 40, Traceroute lifecycle 32, UI foundation 63, UI layout 91, Performance 10, Polling cadence 3, Soak 8, capture infrastructure 39 and build provenance 19. These values are the current floors in the runner; more checks remain valid. Historical totals, including the earlier `332`-check inventory, remain historical evidence and are not rewritten.
+The authoritative unchanged-behavior corpus remains `130/130`: NetOpsCore 16, Feature 93, Performance 10, PollingCadence 3 and OvernightSoak 8. The V2 complete runner discovers `927` checks across fourteen suites: runner 10, NetOpsCore 16, Feature 93, Maintenance 40, Traceroute lifecycle 32, UI foundation 63, UI layout 107, V2 UI 460, version recovery 27, Performance 10, Polling cadence 3, Soak 8, capture infrastructure 39 and build provenance 19. The existing UI layout floor remains 91; the other listed counts are the current floors. Historical totals of 332 and 424 remain historical evidence and are not rewritten. See [V2 profiles and display limitations](V2_UI_TESTING.md).
 
 Run the deterministic Traceroute lifecycle stress after lifecycle changes; every cycle owns a form, probe gate, tables, task registry and temporary state root:
 

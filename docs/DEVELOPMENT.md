@@ -17,7 +17,7 @@ Python and the modern .NET SDK are not required.
 
 Outputs: `artifacts\build\NetStuck.exe` and `artifacts\build\NetStuck.build-provenance.json`.
 
-The production source inventory is the explicit nine-file allowlist in `scripts\NetStuck.BuildProvenance.ps1`. The build disables `CSC.RSP` and the default standard library with `/noconfig` and `/nostdlib+`, supplies `mscorlib` plus every framework reference explicitly, and records separate source-input, toolchain, normalized-invocation and reference-input fingerprints. One ordered argument specification emits both the actual `csc.exe` argv and its path-normalized one-to-one representation. The invocation fingerprint uses binary count/index/UTF-8-length/UTF-8-byte serialization; diagnostic command-line quoting is not identity. Do not add wildcard source discovery or a second compiler-argument builder.
+The production source inventory is the explicit ten-file allowlist in `scripts\NetStuck.BuildProvenance.ps1`. The build disables `CSC.RSP` and the default standard library with `/noconfig` and `/nostdlib+`, supplies `mscorlib` plus every framework reference explicitly, and records separate source-input, toolchain, normalized-invocation and reference-input fingerprints. One ordered argument specification emits both the actual `csc.exe` argv and its path-normalized one-to-one representation. The invocation fingerprint uses binary count/index/UTF-8-length/UTF-8-byte serialization; diagnostic command-line quoting is not identity. Do not add wildcard source discovery or a second compiler-argument builder.
 
 `build_windows.bat` is a convenience wrapper around the same command.
 
@@ -65,7 +65,7 @@ pwsh.exe -NoLogo -NoProfile `
 
 A successful run requires every mandatory suite/stage exactly once, zero parsed failures, zero required skips, zero infrastructure failures and matching child exit semantics. Stage-only output is not the final verdict. Expected negative fixtures may write `stderr` and exit nonzero; the parent asserts that exact diagnostic and exit code without weakening `$ErrorActionPreference`.
 
-The current runner has two mandatory stages and eleven mandatory suites. `scripts/Test-NetStuck.ps1` is the single authoritative source for per-suite minimum counts; falling below any floor fails the suite, JSON verdict and process exit even if every discovered check passed. Its unchanged-behavior baseline remains `130/130`; P2 closure infrastructure established 292 checks; v1.3.1 adds 40 maintenance checks for a complete current inventory of `332` without deleting or weakening historical checks.
+The V2 runner has two mandatory stages and fourteen mandatory suites, with 927 discovered checks. `scripts/Test-NetStuck.ps1` is the single authoritative source for per-suite minimum counts; falling below any floor fails the suite, JSON verdict and process exit even if every discovered check passed. Its unchanged-behavior baseline remains `130/130`; prior totals of 292, 332 and 424 remain historical evidence. V2 adds navigation/layout and version-recovery coverage while preserving the networking/security corpus. Use [V2 focused profiles](V2_UI_TESTING.md) while iterating.
 
 Regenerate the authoritative Phase A screenshot set only after the suite passes. Normal capture requires two fresh isolated hash-identical runs; the closure gate uses five:
 
@@ -78,11 +78,11 @@ The capture host selects each target page before interaction, asserts the intend
 Packaged startup smoke must use an owned temporary state root and fail closed on process or cleanup residue:
 
 ```powershell
-.\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.1.3.1\NetStuck.exe
+.\scripts\Test-PackagedSmoke.ps1 -ExecutablePath .\artifacts\release\NetStuck-v.2.0.0\NetStuck.exe
 ```
 
 Never place smoke `state.json` under `artifacts` or retain operator-profile-derived state. The canonical runner scans repository test-state files for operator-profile and credential content.
 
 The Phase A state presenter intentionally contains only states used by the shell, Calculators or Event Log. The unused determinate-progress contract found during Round 2 was deleted; progress remains deferred until an authorized production consumer exists.
 
-Packaging records source, toolchain, compiler invocation, explicit references, package inputs, decompressed content and ZIP container separately. `SHA256SUMS.txt` covers every intended pre-manifest package file; `NetStuck-v.1.3.1.provenance.json` is an external sidecar created only after package bytes are final, avoiding a self-referential package fingerprint. ZIP hash differences alone do not prove content differences; compare the decompressed content fingerprint and per-file raw hashes.
+Packaging records source, toolchain, compiler invocation, explicit references, package inputs, decompressed content and ZIP container separately. `SHA256SUMS.txt` covers every intended pre-manifest package file; `NetStuck-v.2.0.0.provenance.json` is an external sidecar created only after package bytes are final, avoiding a self-referential package fingerprint. ZIP hash differences alone do not prove content differences; compare the decompressed content fingerprint and per-file raw hashes.

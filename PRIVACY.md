@@ -34,6 +34,8 @@ DNS forward/reverse queries use the Windows-configured system resolver. SSH/Teln
 
 Update checks contact `api.github.com` for the public NetStuck repository; downloads use GitHub and its HTTPS release-asset CDN. GitHub sees the request source IP and a NetStuck version User-Agent. No targets, credentials, usernames, logs or collector captures are sent. Daily checks can be disabled on Updates. Last successful check and public release metadata are cached locally.
 
+Loading previous versions performs an explicit public release-list request to the same repository. Downgrade downloads only the selected application package and checksum; it does not upload operator data. Application-file backups remain local and exclude settings and captures.
+
 Atomic state/cache saves retain a `.bak` beside the original; it has the same sensitivity as the original file. `%LOCALAPPDATA%\NetStuck\updates` contains downloaded application packages, copied updater executables, recovery records and old application-file backups. It does not copy operator state or collector output.
 
 ## Repository rule

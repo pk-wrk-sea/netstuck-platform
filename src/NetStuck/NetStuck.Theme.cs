@@ -149,6 +149,7 @@ namespace NetStuck
                 if (themeSelector != null) themeSelector.SelectedIndex = dark ? 1 : 0;
                 foreach (var entry in themeControls.ToArray())
                     if (!entry.Key.IsDisposed) { entry.Value.ApplyStored(); ApplyThemeDetails(entry.Key, wasDark); }
+                UpdateNavigationV2();
                 Invalidate(true);
             }
             finally { ResumeLayout(true); changingTheme = false; }

@@ -397,7 +397,9 @@ namespace NetStuck
             resultCard.Controls.Add(pingResultSplit); resultCard.Controls.Add(toolbar); resultCard.Controls.Add(SectionHeader("Realtime results", "Click once to highlight a full row; sort, filter, reorder and resize columns"));
             split.Panel2.Controls.Add(resultCard);
             pingRoot.Controls.Add(metrics, 0, 0); pingRoot.Controls.Add(split, 0, 1); page.Controls.Add(pingRoot);
-            ConfigureSplit(page, split, 395, 340, 600); ConfigureHorizontalSplit(resultCard, pingResultSplit, 330, 90, 128);
+            ComposePingV2(page, split, inputCard, inputHeader, targetHint, profilePanel, settings, actionBar, resultCard, toolbar, toolbarActions, historyBar);
+            ConfigureSplit(page, split, V2Design.ConfigurationWidth, 340, 430);
+            ConfigureHorizontalSplit(page, pingResultSplit, 400, 285, 160);
         }
 
         void BuildTracePage()
@@ -425,7 +427,7 @@ namespace NetStuck
             var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical, SplitterWidth = 8, BackColor = Canvas, FixedPanel = FixedPanel.None };
             split.Panel1.Padding = new Padding(0, 0, 4, 0); split.Panel2.Padding = new Padding(4, 0, 0, 0);
             session.Page.Controls.Add(split);
-            ConfigureSplit(session.Page, split, 920, 690, 285);
+            ConfigureSplit(session.Page, split, 920, 560, 240);
 
             var resultCard = Card();
             var controls = new TableLayoutPanel
