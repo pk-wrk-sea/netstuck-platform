@@ -37,7 +37,14 @@ static class UiV2Tests
                 Check("V2 preserves all eight original page identities and state indices", original.Select((name, i) => tabs.TabPages[i].Text == name).All(value => value));
                 Check("Home and Settings are reachable additional destinations", tabs.TabPages[8].Text == "Home" && tabs.TabPages[9].Text == "Settings");
                 Check("sidebar navigation IDs are unique and cover every page", nav.Count == tabs.TabCount && nav.Count == 10);
-                Check("production keeps DPI autoscaling and nominal 1100 by 700 minimum", form.AutoScaleMode == AutoScaleMode.Dpi && form.MinimumSize == new Size(1100, 700));
+                Size expectedMinimum;
+                using (var graphics = form.CreateGraphics())
+                {
+                    Rectangle work = Screen.FromControl(form).WorkingArea;
+                    expectedMinimum = new Size(Math.Min((int)Math.Round(1100 * graphics.DpiX / 96.0), work.Width),
+                        Math.Min((int)Math.Round(700 * graphics.DpiY / 96.0), work.Height));
+                }
+                Check("production keeps DPI autoscaling and caps its scaled nominal minimum to the actual working area", form.AutoScaleMode == AutoScaleMode.Dpi && form.MinimumSize == expectedMinimum);
                 Check("V2 assembly version is 2.0.0.0", typeof(MainForm).Assembly.GetName().Version == new Version(2, 0, 0, 0));
                 foreach (DictionaryEntry entry in nav)
                 {
