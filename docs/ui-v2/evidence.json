@@ -1,0 +1,193 @@
+{
+  "Version": "2.0.0.0",
+  "Dpi": 96,
+  "StructuralMatrixCount": 80,
+  "NativeDropdownCount": 12,
+  "SyntheticFixtures": true,
+  "DesktopPixelsRead": false,
+  "PhysicalPointerAcceptance": "NOT_RUN",
+  "Selection": [
+    {
+      "File": "screenshots/home-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "c9707a2d7e88969fea35d96874ad7b0bcdc557f53da3b71bc98b0a3d8e4897fe",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/home-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "30e34efcb54436de83ffe81074cf92af1bddfb59908527f0b931f62a98444530",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/live-ping-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "5b154357d58474e529a0c102f02835831309ab66920e4d5d469fcb3f0c222197",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/live-ping-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "9537ab29be22253b8c26952b084c0bb997981a04b766e96692a68ccf1ff69912",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/traceroute-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "13988f65a29d0fe76b4429904aaed5a208bb340e0add804942ea2791ee07858d",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/traceroute-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "fcca7987ad4838871266d99af259d92afbaed0df949be1f7e7dde1129a5912bc",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/dns-resolver-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "ed262610ecfc5efcfb28d4c5f7ac287f069a08a165e1cb56069171f40c0112fc",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/dns-resolver-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "faa08cd92cee01d7d20ecd794065cb448991a5795cc06f9159585a3755a121e6",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/mac-wan-lookup-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "73aa07d1ff222b2c44cbfab5021f604f9aa1ef43d8214bf12f32f9f87046b056",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/mac-wan-lookup-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "77cc1181a10281262e1a4f801b4465aa1c0e7690504ccfb4eabc0634d1597b57",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/calculators-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "ddfbe7fa46120011c782a0bd5dd97a7c3762aa711135c104096bcb37a5ca2efc",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/calculators-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "bcd0938fc458972f6e63238cfa57f3943f564cdffda376063e03fa8c44b33783",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/config-collector-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "3073ab16216760659a003af023e821892da057d3ff72bfc57699d5e3fc955f33",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/config-collector-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "9797d4e11ab02c4ba071a9e53ce84d4ba2188672830aa9ba187e9f5f65e66b64",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/event-log-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "0c436c2d626aae4a809cae342dd1f2cbaaf3c5357dc95b9ff6f69b5db0e38adb",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/event-log-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "6e3d6ce1f12beb88ce97f38b06623297ff0dce74db2e75e7c26dc24af5b70cf1",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/updates-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "561ffc5dda31dbcc8f1ce970631600e2d18e9f70e1e372790c90cb2c89cecb74",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/updates-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "78e62b193f4b75b98642b9d8e63402d7413bdf3072088567a19e0733dc6a0098",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/settings-light-1440x900.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "6db611b0bc1805c7b492485636f3ee57b17c9a880f310badfc2d4f2af3e39e2c",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/settings-dark-1100x700.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "885da3c9c8d3df33de8634d8e3861b6414dd3a359e4d69ed514de29e9715394d",
+      "Capture": "DrawToBitmap sanitized form"
+    },
+    {
+      "File": "screenshots/native-theme-light-1440.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "105097cfc59b208a96166d05b2e11904ac4a0d909410c1a4469d817a232e1cc8",
+      "Capture": "owned HWND PrintWindow over sanitized form"
+    },
+    {
+      "File": "screenshots/native-theme-dark-1100.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "bf3e523f96a4b66862ed89307e2ca1ab3788db12b23467d15bb7404e96ffe086",
+      "Capture": "owned HWND PrintWindow over sanitized form"
+    },
+    {
+      "File": "screenshots/native-protocol-light-1440.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "443a4a3b85365dab537f9e09c752262cc470fe72663e9a37ad4c783d572d6fcb",
+      "Capture": "owned HWND PrintWindow over sanitized form"
+    },
+    {
+      "File": "screenshots/native-protocol-dark-1100.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "f8eb30cd615b0d7d2a56c9c1fd602028fd5fef211ac3e52691da50940b5ae2ef",
+      "Capture": "owned HWND PrintWindow over sanitized form"
+    },
+    {
+      "File": "screenshots/native-version-light-1440.png",
+      "Width": 1440,
+      "Height": 900,
+      "Sha256": "eea9ad338188fda564932bde78e87b6e52e77e3bc437ea85a1c4a6360f920373",
+      "Capture": "owned HWND PrintWindow over sanitized form"
+    },
+    {
+      "File": "screenshots/native-version-dark-1100.png",
+      "Width": 1100,
+      "Height": 700,
+      "Sha256": "facf419c067bb248b2643d7c093946ea8341e26a94997937433da32a902b88e1",
+      "Capture": "owned HWND PrintWindow over sanitized form"
+    }
+  ]
+}

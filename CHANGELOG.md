@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. Versions use `vMAJOR.MINOR.PATCH` in Git tags and `v.MAJOR.MINOR.PATCH` in the legacy application UI.
 
+## v2.0.0 — Sidebar workspace and version recovery, 2026-10-06
+
+- Introduce sidebar navigation, a shared page header, Home and Settings while preserving all eight tools and persisted page indices.
+- Separate Ping target/probe panels, pin operations, retain result/history grids and expose secondary actions through More at narrow widths.
+- Add optional event detail, target text-file loading, shared preferences and theme-aware navigation icons/focus.
+- Preserve readable Light/Dark colors and reapply Windows system colors when appearance preferences change.
+- Fit resized/restored windows to the current working area, with DPI-scaled minimums and scroll-safe content.
+- Add explicit GitHub downgrade selection, including archived v1.3.1, exact executable/manifest verification, installed identity checks and rollback backups.
+- Preserve polling cadence, stale-result protection, two Traceroute sessions, batching and password-free Collector transport/state.
+- Add 460 V2 UI and 27 recovery checks, sanitized captures and focused test profiles. Physical DPI/mixed-monitor/High Contrast/screen-reader acceptance remains separate.
+
 ## v1.3.5 — Responsive UI with safe Traceroute Stop, 2026-10-05
 
 - Includes the responsive layout, Light/Dark, text-zoom and snapshot improvements prepared for the unpublished v1.3.4 candidate.

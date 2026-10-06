@@ -1,6 +1,7 @@
 $script:NetStuckProductionSourcePaths = @(
     'src/NetStuck/NetOpsCore.cs',
     'src/NetStuck/NetStuck.UiFoundation.cs',
+    'src/NetStuck/NetStuck.UiV2.cs',
     'src/NetStuck/NetStuck.cs',
     'src/NetStuck/NetStuck.Features.cs',
     'src/NetStuck/NetStuck.Release1.cs',

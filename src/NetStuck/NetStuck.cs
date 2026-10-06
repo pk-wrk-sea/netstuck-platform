@@ -23,8 +23,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("NetStuck")]
 [assembly: AssemblyDescription("Network reachability and diagnostics")]
 [assembly: AssemblyCompany("NetStuck Project")]
-[assembly: AssemblyVersion("1.3.5.0")]
-[assembly: AssemblyFileVersion("1.3.5.0")]
+[assembly: AssemblyVersion("2.0.0.0")]
+[assembly: AssemblyFileVersion("2.0.0.0")]
 
 namespace NetStuck
 {
@@ -80,7 +80,7 @@ namespace NetStuck
     public sealed partial class MainForm : Form
     {
         const string AppName = "NetStuck";
-        const string AppVersion = "v.1.3.5";
+        const string AppVersion = "v.2.0.0";
         const int MaxExpandedTargets = 1024;
 
         Color Canvas { get { return UiPalette.Background(Color.FromArgb(245, 247, 250)); } }
@@ -93,7 +93,7 @@ namespace NetStuck
         Color Danger { get { return UiPalette.Foreground(Color.FromArgb(220, 38, 38)); } }
         Color Warning { get { return UiPalette.Foreground(Color.FromArgb(146, 64, 14)); } }
 
-        readonly TabControl tabs = new TabControl();
+        readonly TabControl tabs = new WorkspaceTabs();
         readonly Dictionary<string, TabPage> pagesByName = new Dictionary<string, TabPage>(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, int> tabActivityCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         readonly ToolStripStatusLabel appStatus = new ToolStripStatusLabel("Ready");
@@ -246,6 +246,7 @@ namespace NetStuck
             BuildCollectorPage();
             BuildLogPage();
             BuildUpdatesPage();
+            FinishPresentationV2();
             LoadProfiles();
             ApplyTheme(this);
             LoadAppState();
@@ -351,6 +352,7 @@ namespace NetStuck
             Controls.Add(tabs);
             Controls.Add(header);
             Controls.Add(status);
+            ComposeShellV2(header, headerLayout, title, sub, logo, version);
         }
 
         void BuildPingPageLegacyV102()
@@ -760,7 +762,14 @@ namespace NetStuck
                 Font = new Font("Segoe UI", 10),
                 BackColor = Surface,
                 Text =
-                    "NetStuck v.1.3.5 (Current)\r\n" +
+                    "NetStuck v.2.0.0 (Current)\r\n" +
+                    "A new network workspace with version recovery\r\n\r\n" +
+                    "- Sidebar navigation, shared page headers and Home / Settings.\r\n" +
+                    "- Separate Ping target and probe panels; responsive result actions.\r\n" +
+                    "- Readable Light / Dark themes and system High Contrast colors.\r\n" +
+                    "- Choose previous GitHub versions under Updates / recovery.\r\n" +
+                    "- Keep fixed polling cadence, dual Traceroute and secure Collector.\r\n\r\n" +
+                    "NetStuck v.1.3.5\r\n" +
                     "Responsive layouts and more comfortable Light / Dark themes\r\n\r\n" +
                     "- Keep Ping and Collector actions visible while settings scroll.\r\n" +
                     "- Improve search labels, wrapped headers, dropdown sizing and dialogs.\r\n" +
@@ -2080,6 +2089,7 @@ namespace NetStuck
             }
             if (disposing)
             {
+                DisposePresentationV2();
                 foreach (Font font in zoomOwnedFonts.Values) font.Dispose();
                 foreach (Font font in zoomOwnedHeaderFonts.Values) font.Dispose();
                 zoomOwnedFonts.Clear(); zoomOwnedHeaderFonts.Clear();
